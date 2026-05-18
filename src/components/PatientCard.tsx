@@ -86,6 +86,56 @@ export default function PatientCard({ patient: initialPatient, doctorId }: { pat
   const [templateParams, setTemplateParams] = React.useState<string[]>([])
   const [paramValues, setParamValues] = React.useState<Record<string, string>>({})
 
+  const renderMessageContent = (content: string) => {
+    // Check if the content is formatted as: 📎 Документ: [filename](url)
+    const docRegex = /📎 Документ:\s*\[(.*?)\]\((.*?)\)/
+    // Check if the content is formatted as: 🖼️ Фото: [filename](url)
+    const photoRegex = /🖼️ Фото:\s*\[(.*?)\]\((.*?)\)/
+
+    const docMatch = content.match(docRegex)
+    if (docMatch) {
+      const fileName = docMatch[1]
+      const fileUrl = docMatch[2]
+      return (
+        <div className="attachment-bubble doc-attachment">
+          <div className="attachment-header">
+            <span className="attachment-icon">📎</span>
+            <span className="attachment-name" title={fileName}>{fileName}</span>
+          </div>
+          <a 
+            href={fileUrl} 
+            target="_blank" 
+            rel="noopener noreferrer" 
+            className="attachment-link-btn"
+          >
+            Открыть документ
+          </a>
+        </div>
+      )
+    }
+
+    const photoMatch = content.match(photoRegex)
+    if (photoMatch) {
+      const photoName = photoMatch[1]
+      const photoUrl = photoMatch[2]
+      return (
+        <div className="attachment-bubble photo-attachment">
+          <div className="photo-preview-wrapper">
+            <img 
+              src={photoUrl} 
+              alt={photoName} 
+              className="chat-photo-preview" 
+              onClick={() => window.open(photoUrl, '_blank')}
+            />
+          </div>
+          <span className="photo-caption">{photoName}</span>
+        </div>
+      )
+    }
+
+    return <div className="text-message-body">{content}</div>
+  }
+
   // Fetch templates when opening template menu
   React.useEffect(() => {
     if (showTemplates) {
@@ -365,7 +415,7 @@ export default function PatientCard({ patient: initialPatient, doctorId }: { pat
                           {msg.source}
                         </span>
                       </div>
-                      <div className="message-content">{msg.content}</div>
+                      <div className="message-content">{renderMessageContent(msg.content)}</div>
                       <div className="message-footer">
                         <span className="message-time">
                           {format(new Date(msg.timestamp), 'HH:mm', { locale: ru })}
@@ -1155,6 +1205,98 @@ export default function PatientCard({ patient: initialPatient, doctorId }: { pat
 
         .interpolation-footer .btn-primary:hover {
           background: var(--primary-hover);
+        }
+
+        /* Message Attachment Styles */
+        .attachment-bubble {
+          display: flex;
+          flex-direction: column;
+          gap: 0.5rem;
+          margin-top: 0.25rem;
+          padding: 0.5rem;
+          background: rgba(255, 255, 255, 0.15);
+          border-radius: 0.75rem;
+          width: 240px;
+          border: 1px solid rgba(255, 255, 255, 0.2);
+        }
+        
+        .doc-attachment {
+          background: rgba(255, 255, 255, 0.1);
+        }
+        
+        .attachment-header {
+          display: flex;
+          align-items: center;
+          gap: 0.5rem;
+        }
+        
+        .attachment-icon {
+          font-size: 1.25rem;
+        }
+        
+        .attachment-name {
+          font-weight: 500;
+          font-size: 0.85rem;
+          white-space: nowrap;
+          overflow: hidden;
+          text-overflow: ellipsis;
+          color: inherit;
+        }
+        
+        .attachment-link-btn {
+          display: block;
+          text-align: center;
+          padding: 0.35rem 0.75rem;
+          background: rgba(255, 255, 255, 0.25);
+          color: inherit !important;
+          border-radius: 0.5rem;
+          font-size: 0.8rem;
+          font-weight: 600;
+          text-decoration: none;
+          transition: background 0.2s;
+        }
+        
+        .attachment-link-btn:hover {
+          background: rgba(255, 255, 255, 0.4);
+        }
+        
+        .photo-attachment {
+          border: none;
+          background: transparent;
+          padding: 0;
+          width: 220px;
+        }
+        
+        .photo-preview-wrapper {
+          border-radius: 0.75rem;
+          overflow: hidden;
+          border: 1px solid var(--border);
+          box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
+          cursor: pointer;
+          max-height: 180px;
+        }
+        
+        .chat-photo-preview {
+          width: 100%;
+          height: auto;
+          max-height: 180px;
+          object-fit: cover;
+          display: block;
+          transition: transform 0.2s;
+        }
+        
+        .chat-photo-preview:hover {
+          transform: scale(1.02);
+        }
+        
+        .photo-caption {
+          font-size: 0.75rem;
+          color: var(--text-secondary);
+          margin-top: 0.25rem;
+          display: block;
+          white-space: nowrap;
+          overflow: hidden;
+          text-overflow: ellipsis;
         }
       `}</style>
     </div>

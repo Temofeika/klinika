@@ -11,6 +11,7 @@ interface Document {
   type: 'PDF' | 'IMAGE'
   size: string
   date: string | Date
+  url?: string
 }
 
 interface PatientDocumentsProps {
@@ -118,9 +119,22 @@ export default function PatientDocuments({ medical, onUpdate }: PatientDocuments
                   </div>
                 </div>
                 <div className="doc-actions">
-                  <button className="action-btn" onClick={() => alert(`Загрузка файла "${doc.name}" начата...`)} title="Скачать файл">
-                    <Download size={18} />
-                  </button>
+                  {doc.url ? (
+                    <a 
+                      className="action-btn" 
+                      href={doc.url} 
+                      target="_blank" 
+                      rel="noopener noreferrer" 
+                      title="Открыть/Скачать файл"
+                      style={{ display: 'inline-flex', alignItems: 'center', justifyContent: 'center' }}
+                    >
+                      <Download size={18} />
+                    </a>
+                  ) : (
+                    <button className="action-btn" onClick={() => alert(`Загрузка файла "${doc.name}" начата...`)} title="Скачать файл">
+                      <Download size={18} />
+                    </button>
+                  )}
                   <button className="action-btn delete" onClick={() => handleDeleteDocument(doc.id)} title="Удалить файл">
                     <Trash2 size={18} />
                   </button>

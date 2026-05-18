@@ -18,6 +18,71 @@ async function sendTelegramMessage(token: string, chatId: string, text: string, 
   }
 }
 
+// Helper to retrieve the actual file download URL from Telegram API
+async function getTelegramFileUrl(token: string, fileId: string): Promise<string | null> {
+  try {
+    const res = await fetch(`https://api.telegram.org/bot${token}/getFile?file_id=${fileId}`)
+    const data = await res.json()
+    if (data.ok && data.result?.file_path) {
+      return `https://api.telegram.org/file/bot${token}/${data.result.file_path}`
+    }
+  } catch (e: any) {
+    console.error('[TELEGRAM WEBHOOK GET FILE ERROR]', e.message)
+  }
+  return null
+}
+
+// Helper to save client documents to their medical record JSON
+async function addDocumentToPatient(
+  patientId: string,
+  docName: string,
+  docType: 'IMAGE' | 'PDF',
+  docSize: string,
+  docUrl: string,
+  platformName: string
+) {
+  const patient = await prisma.patient.findUnique({
+    where: { id: patientId }
+  })
+  if (!patient) return
+
+  let medical: any = { documents: [], history: [] }
+  if (patient.medicalRecord) {
+    try {
+      medical = JSON.parse(patient.medicalRecord)
+    } catch (e) {
+      console.error('Failed to parse medicalRecord JSON:', e)
+    }
+  }
+
+  if (!Array.isArray(medical.documents)) medical.documents = []
+  if (!Array.isArray(medical.history)) medical.history = []
+
+  const newDoc = {
+    id: Math.random().toString(36).substring(2, 9) + Date.now().toString(),
+    name: docName,
+    type: docType,
+    size: docSize,
+    date: new Date().toISOString(),
+    url: docUrl
+  }
+
+  medical.documents.unshift(newDoc)
+
+  const today = new Date().toLocaleDateString('ru-RU')
+  medical.history.unshift({
+    date: today,
+    desc: `Получен файл от пациента через ${platformName}: "${docName}" (${docSize}).`
+  })
+
+  await prisma.patient.update({
+    where: { id: patientId },
+    data: {
+      medicalRecord: JSON.stringify(medical)
+    }
+  })
+}
+
 // POST /api/telegram/webhook
 export async function POST(request: Request) {
   try {
@@ -118,10 +183,16 @@ export async function POST(request: Request) {
       return NextResponse.json({ success: true, status: 'contact_processed' })
     }
 
-    // 2. HANDLE REGULAR TEXT MESSAGES
-    const content = messageObj.text
-    if (!content) {
-      return NextResponse.json({ status: 'ignored_no_text' })
+    // 2. HANDLE REGULAR TEXT MESSAGES & ATTACHMENTS
+    const content = messageObj.text || ''
+    const photo = messageObj.photo
+    const document = messageObj.document
+
+    const hasPhoto = Array.isArray(photo) && photo.length > 0
+    const hasDocument = !!document
+
+    if (!content && !hasPhoto && !hasDocument) {
+      return NextResponse.json({ status: 'ignored_no_text_or_attachment' })
     }
 
     const firstName = fromUser?.first_name || 'Telegram'
@@ -198,11 +269,73 @@ export async function POST(request: Request) {
       return NextResponse.json({ success: true, message: startMsg })
     }
 
-    // Save normal text messages and update activity time
+    // Process attachments if present
+    let finalContent = content
+    
+    // Process Document Attachment
+    if (hasDocument && token) {
+      const fileId = document.file_id
+      const rawName = document.file_name || `document_${Date.now()}.pdf`
+      const mimeType = document.mime_type || ''
+      const sizeBytes = document.file_size || 0
+      const kbSize = sizeBytes > 0 ? `${(sizeBytes / 1024).toFixed(1)} KB` : 'Unknown'
+      
+      const fileType = mimeType.startsWith('image/') ? 'IMAGE' : 'PDF'
+      
+      const fileUrl = await getTelegramFileUrl(token, fileId)
+      if (fileUrl) {
+        await addDocumentToPatient(
+          account.patientId,
+          rawName,
+          fileType,
+          kbSize,
+          fileUrl,
+          'Telegram'
+        )
+        
+        const icon = fileType === 'IMAGE' ? '🖼️ Фото' : '📎 Документ'
+        const linkMarkdown = `${icon}: [${rawName}](${fileUrl})`
+        if (finalContent) {
+          finalContent += `\n${linkMarkdown}`
+        } else {
+          finalContent = linkMarkdown
+        }
+      }
+    }
+
+    // Process Photo Attachment
+    if (hasPhoto && token) {
+      const targetPhoto = photo[photo.length - 1]
+      const fileId = targetPhoto.file_id
+      const sizeBytes = targetPhoto.file_size || 0
+      const kbSize = sizeBytes > 0 ? `${(sizeBytes / 1024).toFixed(1)} KB` : 'Unknown'
+      const photoName = `Фото_Телеграм_${new Date().toLocaleDateString('ru-RU')}_${Math.floor(Math.random() * 1000)}.jpg`
+      
+      const fileUrl = await getTelegramFileUrl(token, fileId)
+      if (fileUrl) {
+        await addDocumentToPatient(
+          account.patientId,
+          photoName,
+          'IMAGE',
+          kbSize,
+          fileUrl,
+          'Telegram'
+        )
+        
+        const linkMarkdown = `🖼️ Фото: [${photoName}](${fileUrl})`
+        if (finalContent) {
+          finalContent += `\n${linkMarkdown}`
+        } else {
+          finalContent = linkMarkdown
+        }
+      }
+    }
+
+    // Save message and update activity time
     const savedMessage = await prisma.$transaction([
       prisma.message.create({
         data: {
-          content,
+          content: finalContent,
           source: 'TELEGRAM',
           isIncoming: true,
           isRead: false,
