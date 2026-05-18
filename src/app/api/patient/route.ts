@@ -4,6 +4,7 @@ import { prisma } from '@/lib/db'
 export async function GET(request: Request) {
   const { searchParams } = new URL(request.url)
   const id = searchParams.get('id')
+  const doctorId = searchParams.get('doctorId')
 
   try {
     if (id) {
@@ -17,13 +18,17 @@ export async function GET(request: Request) {
       return NextResponse.json(patient)
     }
 
+    const whereClause = doctorId ? { doctorId } : {}
+
     const patients = await prisma.patient.findMany({
+      where: whereClause,
       select: {
         id: true,
         firstName: true,
         lastName: true,
         phone: true,
         lastMessageAt: true,
+        doctorId: true,
         messages: {
           select: {
             isRead: true,

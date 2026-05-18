@@ -6,9 +6,10 @@ import { X, UserPlus, Phone, Mail, Send } from 'lucide-react'
 interface AddPatientModalProps {
   onClose: () => void
   onSuccess: (patient: any) => void
+  doctorId?: string
 }
 
-export default function AddPatientModal({ onClose, onSuccess }: AddPatientModalProps) {
+export default function AddPatientModal({ onClose, onSuccess, doctorId }: AddPatientModalProps) {
   const [formData, setFormData] = React.useState({
     firstName: '',
     lastName: '',
@@ -29,7 +30,7 @@ export default function AddPatientModal({ onClose, onSuccess }: AddPatientModalP
       const res = await fetch('/api/patient/create', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(formData)
+        body: JSON.stringify({ ...formData, doctorId })
       })
 
       const data = await res.json()

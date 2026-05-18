@@ -69,7 +69,7 @@ const defaultMedical = {
   ]
 }
 
-export default function PatientCard({ patient: initialPatient }: { patient: Patient }) {
+export default function PatientCard({ patient: initialPatient, doctorId }: { patient: Patient; doctorId?: string }) {
   const [patient, setPatient] = React.useState(initialPatient)
   const [input, setInput] = React.useState('')
   const [chatSearch, setChatSearch] = React.useState('')
@@ -131,7 +131,8 @@ export default function PatientCard({ patient: initialPatient }: { patient: Pati
         body: JSON.stringify({
           patientId: patient.id,
           platform,
-          content: input
+          content: input,
+          doctorId
         })
       })
 
@@ -161,15 +162,16 @@ export default function PatientCard({ patient: initialPatient }: { patient: Pati
         body: JSON.stringify({
           patientId: patient.id,
           content: reminderText,
-          platform: platform // Use current selected platform
+          platform: platform, // Use current selected platform
+          doctorId
         })
       })
 
       if (res.ok) {
-        const newMessage = await res.json()
+        const { message } = await res.json()
         setPatient({
           ...patient,
-          messages: [...patient.messages, newMessage]
+          messages: [...patient.messages, message]
         })
         alert('Напоминание успешно отправлено!')
       }

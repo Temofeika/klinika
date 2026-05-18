@@ -4,7 +4,7 @@ import { prisma } from '@/lib/db'
 export async function POST(request: Request) {
   try {
     const body = await request.json()
-    const { firstName, lastName, phone, email, telegramId, whatsappId } = body
+    const { firstName, lastName, phone, email, telegramId, whatsappId, doctorId } = body
 
     if (!firstName || !lastName || !phone) {
       return NextResponse.json({ error: 'Missing required fields' }, { status: 400 })
@@ -17,6 +17,7 @@ export async function POST(request: Request) {
         lastName,
         phone,
         email,
+        doctorId: doctorId || null,
         messengerAccounts: {
           create: [
             ...(telegramId ? [{ platform: 'TELEGRAM', externalId: telegramId }] : []),

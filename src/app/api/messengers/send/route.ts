@@ -5,7 +5,7 @@ import { sendMaxMessage } from '@/lib/max'
 export async function POST(request: Request) {
   try {
     const body = await request.json()
-    const { patientId, platform, content } = body
+    const { patientId, platform, content, doctorId } = body
 
     if (!patientId || !platform || !content) {
       return NextResponse.json({ error: 'Missing required fields' }, { status: 400 })
@@ -22,10 +22,16 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: `Patient has no connected account for ${platform}` }, { status: 400 })
     }
 
+    // Fetch active doctor details if provided
+    const doctor = doctorId ? await prisma.doctor.findUnique({ where: { id: doctorId } }) : null
+    const displayContent = doctor 
+      ? `${doctor.firstName} ${doctor.lastName} (${doctor.position}): ${content}` 
+      : content
+
     // Attempt to send via Max API if platform is MAX
     if (platform === 'MAX') {
       console.log(`Sending MAX message to ${patientAccount.externalId}...`);
-      const maxRes = await sendMaxMessage(patientAccount.externalId, content, process.env.MAX_API_KEY);
+      const maxRes = await sendMaxMessage(patientAccount.externalId, displayContent, process.env.MAX_API_KEY);
 
       if (!maxRes.success) {
         console.error('Failed to send Max message:', maxRes.error);
@@ -34,7 +40,7 @@ export async function POST(request: Request) {
     } else if (platform === 'CHATWOOT') {
       console.log(`Sending CHATWOOT message to conversation ${patientAccount.externalId}...`);
       const { sendChatwootMessage } = await import('@/lib/chatwoot');
-      const chatRes = await sendChatwootMessage(patientAccount.externalId, content);
+      const chatRes = await sendChatwootMessage(patientAccount.externalId, displayContent);
 
       if (!chatRes.success) {
         console.error('Failed to send Chatwoot message:', chatRes.error);
@@ -62,7 +68,7 @@ export async function POST(request: Request) {
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({
             chat_id: patientAccount.externalId,
-            text: content
+            text: displayContent
           })
         });
 
@@ -77,14 +83,14 @@ export async function POST(request: Request) {
         return NextResponse.json({ error: 'Network error occurred while contacting Telegram Bot API' }, { status: 502 });
       }
     } else {
-      console.log(`Sending ${platform} message to patient ${patientId}: ${content}`)
+      console.log(`Sending ${platform} message to patient ${patientId}: ${displayContent}`)
     }
 
     // Save the outgoing message to the database
     const message = await prisma.$transaction([
       prisma.message.create({
         data: {
-          content,
+          content: displayContent,
           source: platform,
           isIncoming: false,
           isRead: true, // outgoing messages are read by default
