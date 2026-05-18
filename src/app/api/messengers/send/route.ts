@@ -37,15 +37,6 @@ export async function POST(request: Request) {
         console.error('Failed to send Max message:', maxRes.error);
         return NextResponse.json({ error: 'Failed to send message to Max platform' }, { status: 502 });
       }
-    } else if (platform === 'CHATWOOT') {
-      console.log(`Sending CHATWOOT message to conversation ${patientAccount.externalId}...`);
-      const { sendChatwootMessage } = await import('@/lib/chatwoot');
-      const chatRes = await sendChatwootMessage(patientAccount.externalId, displayContent);
-
-      if (!chatRes.success) {
-        console.error('Failed to send Chatwoot message:', chatRes.error);
-        return NextResponse.json({ error: 'Failed to send message via Chatwoot' }, { status: 502 });
-      }
     } else if (platform === 'TELEGRAM') {
       console.log(`Sending TELEGRAM message via Bot API to chat ${patientAccount.externalId}...`);
 
