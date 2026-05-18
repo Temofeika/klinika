@@ -30,17 +30,15 @@ async function startBridge() {
   const CRM_URL = process.env.CRM_URL || 'https://klinika-ou7fr6y4j-temafeika-s-projects.vercel.app'
   console.log(`[CRM] Connecting to CRM at: ${CRM_URL}`)
 
-  let apiIdStr = process.env.TELEGRAM_API_ID
-  let apiHash = process.env.TELEGRAM_API_HASH
+  // Official Telegram Desktop client credentials (used as a safe, public fallback)
+  const DEFAULT_API_ID = '2040'
+  const DEFAULT_API_HASH = 'b18441a1ff607e10a989891a5625e74d'
+
+  let apiIdStr = process.env.TELEGRAM_API_ID || DEFAULT_API_ID
+  let apiHash = process.env.TELEGRAM_API_HASH || DEFAULT_API_HASH
   let phoneNumber = process.env.TELEGRAM_PHONE_NUMBER
 
-  if (!apiIdStr || !apiHash) {
-    console.log('\nДля работы моста необходимы API credentials от Telegram (my.telegram.org):')
-    if (!apiIdStr) apiIdStr = await question('Введите Telegram API_ID: ')
-    if (!apiHash) apiHash = await question('Введите Telegram API_HASH: ')
-  }
-
-  const apiId = parseInt(apiIdStr!, 10)
+  const apiId = parseInt(apiIdStr, 10)
 
   // 2. Fetch Chatwoot settings dynamically from the CRM
   let cwConfig: { baseUrl: string; accountId: string; apiToken: string; inboxId: string }
