@@ -8,11 +8,12 @@ import TelegramAuth from '@/components/TelegramAuth'
 export default function SettingsPage() {
   const [activeSection, setActiveSection] = React.useState('TEMPLATES')
   
-  // Chatwoot settings state
+  // Chatwoot & Telegram settings state
   const [cwUrl, setCwUrl] = React.useState('')
   const [cwAccountId, setCwAccountId] = React.useState('')
   const [cwToken, setCwToken] = React.useState('')
   const [cwInboxId, setCwInboxId] = React.useState('')
+  const [tgBotToken, setTgBotToken] = React.useState('')
   const [origin, setOrigin] = React.useState('https://[ваш-домен]')
   const [isSaving, setIsSaving] = React.useState(false)
 
@@ -32,6 +33,7 @@ export default function SettingsPage() {
             setCwAccountId(data.accountId || '')
             setCwToken(data.apiToken || '')
             setCwInboxId(data.inboxId || '')
+            setTgBotToken(data.telegramBotToken || '')
           }
         })
         .catch(console.error)
@@ -44,12 +46,33 @@ export default function SettingsPage() {
       const res = await fetch('/api/settings/chatwoot', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ baseUrl: cwUrl, accountId: cwAccountId, apiToken: cwToken, inboxId: cwInboxId })
+        body: JSON.stringify({ baseUrl: cwUrl, accountId: cwAccountId, apiToken: cwToken, inboxId: cwInboxId, telegramBotToken: tgBotToken })
       })
       if (res.ok) {
         alert('Настройки Chatwoot успешно сохранены!')
       } else {
         alert('Ошибка при сохранении настроек.')
+      }
+    } catch (e) {
+      console.error(e)
+      alert('Ошибка сети.')
+    } finally {
+      setIsSaving(false)
+    }
+  }
+
+  const handleSaveTelegram = async () => {
+    setIsSaving(true)
+    try {
+      const res = await fetch('/api/settings/chatwoot', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ baseUrl: cwUrl, accountId: cwAccountId, apiToken: cwToken, inboxId: cwInboxId, telegramBotToken: tgBotToken })
+      })
+      if (res.ok) {
+        alert('Настройки Telegram-бота успешно сохранены! Вебхук зарегистрирован.')
+      } else {
+        alert('Ошибка при сохранении настроек бота.')
       }
     } catch (e) {
       console.error(e)
@@ -91,42 +114,83 @@ export default function SettingsPage() {
           {activeSection === 'TD_SYNC' && <TelegramAuth />}
 
           {activeSection === 'MESSENGERS' && (
-            <div className="settings-section glass-card">
-              <h4>Интеграция Chatwoot</h4>
-              <p className="text-sm text-slate-500 mb-4">Настройте подключение к вашему серверу Chatwoot для агрегации всех мессенджеров (Telegram, WhatsApp, Instagram) в едином окне CRM.</p>
-              
-              <div className="form-group">
-                <label>Chatwoot Base URL</label>
-                <input type="text" placeholder="https://app.chatwoot.com" value={cwUrl} onChange={e => setCwUrl(e.target.value)} />
-                <span className="field-hint">Адрес вашего сервера Chatwoot или облачной версии.</span>
-              </div>
-              <div className="form-group">
-                <label>Account ID</label>
-                <input type="text" placeholder="Например: 1" value={cwAccountId} onChange={e => setCwAccountId(e.target.value)} />
-                <span className="field-hint">ID вашего аккаунта (можно найти в URL панели управления Chatwoot).</span>
-              </div>
-              <div className="form-group">
-                <label>API Access Token</label>
-                <input type="password" placeholder="••••••••••••••••••••" value={cwToken} onChange={e => setCwToken(e.target.value)} />
-                <span className="field-hint">Ваш личный токен доступа (Profile Settings -{'>'} Access Token).</span>
-              </div>
-              <div className="form-group">
-                <label>API Inbox ID</label>
-                <input type="text" placeholder="Например: 2" value={cwInboxId} onChange={e => setCwInboxId(e.target.value)} />
-                <span className="field-hint">ID вашего Custom API канала в Chatwoot (создается при добавлении API канала).</span>
-              </div>
-              
-              <div className="webhook-info mt-4 p-4 bg-blue-50 rounded-lg border border-blue-100">
-                <h5 className="text-sm font-semibold text-blue-800 mb-2">Настройка Webhook</h5>
-                <p className="text-xs text-blue-600">Скопируйте этот URL и добавьте его в настройки Webhook в вашем Chatwoot (выберите событие <b>message_created</b>):</p>
-                <code className="block mt-2 p-2 bg-white rounded text-xs text-slate-700 border border-slate-200">
-                  {origin}/api/chatwoot/webhook
-                </code>
+            <div className="messengers-container">
+              {/* Telegram Bot (Direct Connection) */}
+              <div className="settings-section glass-card">
+                <h4>Telegram-бот (Напрямую — Рекомендуется)</h4>
+                <p className="text-sm text-slate-500 mb-4">
+                  Подключите Telegram-бота вашей клиники напрямую. Пациенты смогут писать боту, а вы будете отвечать прямо из этой CRM. 
+                  <b> Без включенного ПК, без VPN и без сторонних сервисов!</b>
+                </p>
+                
+                <div className="form-group">
+                  <label>Telegram Bot Token</label>
+                  <input 
+                    type="text" 
+                    placeholder="Например: 123456789:ABCdefGhIJKlmNoPQRsTUVwxyZ" 
+                    value={tgBotToken} 
+                    onChange={e => setTgBotToken(e.target.value)} 
+                  />
+                  <span className="field-hint">
+                    Токен вашего бота. Чтобы получить его бесплатно за 10 секунд:
+                    <ol style={{ margin: '0.5rem 0 0 1rem', padding: 0 }}>
+                      <li>Откройте Telegram, найдите официального бота <a href="https://t.me/BotFather" target="_blank" rel="noreferrer" style={{ color: '#2563eb', fontWeight: 600, textDecoration: 'underline' }}>@BotFather</a></li>
+                      <li>Отправьте команду <code className="bg-slate-100 p-0.5 rounded text-red-500 font-mono">/newbot</code> и следуйте инструкциям</li>
+                      <li>Скопируйте полученный HTTP API Token и вставьте его сюда.</li>
+                    </ol>
+                  </span>
+                </div>
+
+                <div className="webhook-info p-4 bg-emerald-50 rounded-lg border border-emerald-100" style={{ backgroundColor: '#ecfdf5', borderColor: '#d1fae5', padding: '1rem', borderRadius: '0.75rem', border: '1px solid #d1fae5' }}>
+                  <h5 className="text-sm font-semibold text-emerald-800 mb-2" style={{ color: '#065f46', fontWeight: 600 }}>Авто-настройка</h5>
+                  <p className="text-xs text-emerald-600" style={{ color: '#047857', fontSize: '0.8rem' }}>
+                    При сохранении токена CRM <b>автоматически</b> пропишет безопасный Webhook для вашего бота. Бот моментально начнет принимать сообщения и выводить их в вашу CRM!
+                  </p>
+                </div>
+
+                <button className="btn-save mt-2" onClick={handleSaveTelegram} disabled={isSaving} style={{ backgroundColor: '#10b981' }}>
+                  <Save size={16} /> {isSaving ? 'Сохранение...' : 'Сохранить и активировать бота'}
+                </button>
               </div>
 
-              <button className="btn-save mt-4" onClick={handleSaveChatwoot} disabled={isSaving}>
-                <Save size={16} /> {isSaving ? 'Сохранение...' : 'Сохранить настройки'}
-              </button>
+              {/* Chatwoot (Aggregator) */}
+              <div className="settings-section glass-card">
+                <h4>Интеграция Chatwoot (Агрегатор)</h4>
+                <p className="text-sm text-slate-500 mb-4">Настройте подключение к вашему серверу Chatwoot для агрегации всех мессенджеров (Telegram, WhatsApp, Instagram) в едином окне CRM.</p>
+                
+                <div className="form-group">
+                  <label>Chatwoot Base URL</label>
+                  <input type="text" placeholder="https://app.chatwoot.com" value={cwUrl} onChange={e => setCwUrl(e.target.value)} />
+                  <span className="field-hint">Адрес вашего сервера Chatwoot или облачной версии.</span>
+                </div>
+                <div className="form-group">
+                  <label>Account ID</label>
+                  <input type="text" placeholder="Например: 1" value={cwAccountId} onChange={e => setCwAccountId(e.target.value)} />
+                  <span className="field-hint">ID вашего аккаунта (можно найти в URL панели управления Chatwoot).</span>
+                </div>
+                <div className="form-group">
+                  <label>API Access Token</label>
+                  <input type="password" placeholder="••••••••••••••••••••" value={cwToken} onChange={e => setCwToken(e.target.value)} />
+                  <span className="field-hint">Ваш личный токен доступа (Profile Settings -&gt; Access Token).</span>
+                </div>
+                <div className="form-group">
+                  <label>API Inbox ID</label>
+                  <input type="text" placeholder="Например: 2" value={cwInboxId} onChange={e => setCwInboxId(e.target.value)} />
+                  <span className="field-hint">ID вашего Custom API канала в Chatwoot (создается при добавлении API канала).</span>
+                </div>
+                
+                <div className="webhook-info mt-4 p-4 bg-blue-50 rounded-lg border border-blue-100" style={{ backgroundColor: '#eff6ff', borderColor: '#dbeafe', padding: '1rem', borderRadius: '0.75rem', border: '1px solid #dbeafe' }}>
+                  <h5 className="text-sm font-semibold text-blue-800 mb-2" style={{ color: '#1e40af', fontWeight: 600 }}>Настройка Webhook</h5>
+                  <p className="text-xs text-blue-600" style={{ color: '#1d4ed8', fontSize: '0.8rem' }}>Скопируйте этот URL и добавьте его в настройки Webhook в вашем Chatwoot (выберите событие <b>message_created</b>):</p>
+                  <code className="block mt-2 p-2 bg-white rounded text-xs text-slate-700 border border-slate-200" style={{ display: 'block', padding: '0.5rem', backgroundColor: 'white', borderRadius: '0.25rem', marginTop: '0.5rem', border: '1px solid #e2e8f0', fontFamily: 'monospace' }}>
+                    {origin}/api/chatwoot/webhook
+                  </code>
+                </div>
+
+                <button className="btn-save mt-4" onClick={handleSaveChatwoot} disabled={isSaving}>
+                  <Save size={16} /> {isSaving ? 'Сохранение...' : 'Сохранить настройки'}
+                </button>
+              </div>
             </div>
           )}
 
@@ -246,6 +310,12 @@ export default function SettingsPage() {
           display: flex;
           align-items: center;
           gap: 0.5rem;
+        }
+
+        .messengers-container {
+          display: flex;
+          flex-direction: column;
+          gap: 2rem;
         }
 
         .security-option {

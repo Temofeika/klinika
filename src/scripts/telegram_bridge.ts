@@ -30,9 +30,9 @@ async function startBridge() {
   const CRM_URL = process.env.CRM_URL || 'https://klinika-ou7fr6y4j-temafeika-s-projects.vercel.app'
   console.log(`[CRM] Target CRM URL: ${CRM_URL}`)
 
-  // Official Telegram Desktop client credentials (used as a safe, public fallback)
-  const DEFAULT_API_ID = '2040'
-  const DEFAULT_API_HASH = 'b18441a1ff607e10a989891a5625e74d'
+  // Official Telegram Android client credentials (highly stable fallback)
+  const DEFAULT_API_ID = '2899'
+  const DEFAULT_API_HASH = '36722c7291de27bf50f4d27f827b494f'
 
   const apiIdStr = process.env.TELEGRAM_API_ID || DEFAULT_API_ID
   const apiHash = process.env.TELEGRAM_API_HASH || DEFAULT_API_HASH

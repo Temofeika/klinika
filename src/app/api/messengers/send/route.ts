@@ -40,8 +40,43 @@ export async function POST(request: Request) {
         console.error('Failed to send Chatwoot message:', chatRes.error);
         return NextResponse.json({ error: 'Failed to send message via Chatwoot' }, { status: 502 });
       }
+    } else if (platform === 'TELEGRAM') {
+      console.log(`Sending TELEGRAM message via Bot API to chat ${patientAccount.externalId}...`);
+      
+      // Fetch Bot Token from database settings
+      const tokenSetting = await prisma.systemSetting.findUnique({
+        where: { key: 'TELEGRAM_BOT_TOKEN' }
+      });
+      const token = tokenSetting?.value;
+
+      if (!token) {
+        console.error('[TELEGRAM BOT] Cannot send message: Missing Bot Token in settings.');
+        return NextResponse.json({ 
+          error: 'Отсутствует Token Telegram-бота. Перейдите в "Настройки" -> "Мессенджеры" и укажите его.' 
+        }, { status: 400 });
+      }
+
+      try {
+        const tgRes = await fetch(`https://api.telegram.org/bot${token}/sendMessage`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            chat_id: patientAccount.externalId,
+            text: content
+          })
+        });
+
+        const tgData = await tgRes.json();
+        
+        if (!tgData.ok) {
+          console.error('[TELEGRAM BOT API ERROR]', tgData.description);
+          return NextResponse.json({ error: `Telegram Bot API error: ${tgData.description}` }, { status: 502 });
+        }
+      } catch (tgError: any) {
+        console.error('[TELEGRAM BOT NETWORK ERROR]', tgError);
+        return NextResponse.json({ error: 'Network error occurred while contacting Telegram Bot API' }, { status: 502 });
+      }
     } else {
-      // In a real app, here we would call the Telegram API
       console.log(`Sending ${platform} message to patient ${patientId}: ${content}`)
     }
 
@@ -53,7 +88,7 @@ export async function POST(request: Request) {
           source: platform,
           isIncoming: false,
           isRead: true, // outgoing messages are read by default
-          status: platform === 'TELEGRAM' ? 'PENDING' : 'SENT',
+          status: 'SENT',
           patientId
         }
       }),
