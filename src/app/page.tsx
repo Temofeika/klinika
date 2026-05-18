@@ -16,8 +16,11 @@ export default function Home() {
     activeMessenger: 'Telegram'
   })
 
+  const [initialLoaded, setInitialLoaded] = useState(false)
+
+  // 1. Initial Load: Fetch patients list, set default active patient
   useEffect(() => {
-    const fetchData = async () => {
+    const loadInitialData = async () => {
       try {
         const res = await fetch('/api/patient')
         const data = await res.json()
@@ -25,20 +28,62 @@ export default function Home() {
         setStats(prev => ({ ...prev, totalPatients: data.length }))
         
         if (data.length > 0) {
-          handleSelectPatient(data[0].id)
+          await handleSelectPatient(data[0].id)
         } else {
           setLoading(false)
         }
       } catch (err) {
-        console.error('Failed to fetch patients:', err)
+        console.error('Failed to load initial data:', err)
         setLoading(false)
+      } finally {
+        setInitialLoaded(true)
       }
     }
-    fetchData()
+    loadInitialData()
   }, [])
 
+  // 2. Poll patients list every 3 seconds to get unread badges & new patients
+  useEffect(() => {
+    if (!initialLoaded) return
+
+    const pollPatientsList = async () => {
+      try {
+        const res = await fetch('/api/patient')
+        const data = await res.json()
+        setPatients(data)
+        setStats(prev => ({ ...prev, totalPatients: data.length }))
+      } catch (err) {
+        console.error('Failed to poll patients list:', err)
+      }
+    }
+
+    const interval = setInterval(pollPatientsList, 3000)
+    return () => clearInterval(interval)
+  }, [initialLoaded])
+
+  // 3. Poll active selected patient details to receive chat messages in real time
+  useEffect(() => {
+    if (!patient?.id) return
+
+    const pollActivePatient = async () => {
+      try {
+        const res = await fetch(`/api/patient?id=${patient.id}`)
+        const data = await res.json()
+        
+        // Prevent state refresh if messages list didn't change to save DOM performance
+        if (JSON.stringify(data.messages) !== JSON.stringify(patient.messages)) {
+          setPatient(data)
+        }
+      } catch (err) {
+        console.error('Failed to poll active patient details:', err)
+      }
+    }
+
+    const interval = setInterval(pollActivePatient, 3000)
+    return () => clearInterval(interval)
+  }, [patient?.id, patient?.messages])
+
   const handleSelectPatient = async (id: string) => {
-    setLoading(true)
     try {
       // Mark as read
       await fetch('/api/patient/read', {
@@ -57,8 +102,6 @@ export default function Home() {
       setPatient(data)
     } catch (err) {
       console.error('Failed to fetch patient details:', err)
-    } finally {
-      setLoading(false)
     }
   }
 
