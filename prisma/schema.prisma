@@ -25,8 +25,20 @@ model Patient {
   
   medicalRecord String?  // Stores JSON string of all clinical records
   
+  doctor        Doctor?  @relation(fields: [doctorId], references: [id])
+  doctorId      String?
+
   messages      Message[]
   messengerAccounts MessengerAccount[]
+}
+
+model Doctor {
+  id        String    @id @default(cuid())
+  firstName String
+  lastName  String
+  position  String    // e.g., "Терапевт", "Кардиолог"
+  username  String    @unique
+  patients  Patient[]
 }
 
 model Message {
