@@ -1,7 +1,7 @@
 'use client'
 
 import React from 'react'
-import { MessageSquare, Send, Phone, User, Calendar, FileText, Share2, Check, CheckCheck, Search, Files, ClipboardList, CreditCard, Microscope } from 'lucide-react'
+import { MessageSquare, Send, Phone, User, Calendar, FileText, Share2, Check, CheckCheck, Search, Files, ClipboardList, CreditCard, Microscope, X } from 'lucide-react'
 import { format, formatDistanceToNow } from 'date-fns'
 import { ru } from 'date-fns/locale'
 import PatientDocuments from './PatientDocuments'
@@ -77,6 +77,71 @@ export default function PatientCard({ patient: initialPatient, doctorId }: { pat
   const [activeTab, setActiveTab] = React.useState<'CHAT' | 'DOCS' | 'APPS' | 'MEDICAL' | 'BILLING' | 'LABS'>('CHAT')
   const [platform, setPlatform] = React.useState<'TELEGRAM' | 'MAX'>('TELEGRAM')
   const [sending, setSending] = React.useState(false)
+
+  // Templates Integration States
+  const [showTemplates, setShowTemplates] = React.useState(false)
+  const [templates, setTemplates] = React.useState<any[]>([])
+  const [searchTemplateQuery, setSearchTemplateQuery] = React.useState('')
+  const [selectedTemplate, setSelectedTemplate] = React.useState<any | null>(null)
+  const [templateParams, setTemplateParams] = React.useState<string[]>([])
+  const [paramValues, setParamValues] = React.useState<Record<string, string>>({})
+
+  // Fetch templates when opening template menu
+  React.useEffect(() => {
+    if (showTemplates) {
+      fetch('/api/templates')
+        .then(res => res.json())
+        .then(data => {
+          if (Array.isArray(data)) setTemplates(data)
+        })
+        .catch(console.error)
+    }
+  }, [showTemplates])
+
+  const handleSelectTemplate = (template: any) => {
+    const regex = /\{\{([a-zA-Z0-9_]+)\}\}/g
+    const params: string[] = []
+    let match
+    while ((match = regex.exec(template.content)) !== null) {
+      if (!params.includes(match[1])) {
+        params.push(match[1])
+      }
+    }
+
+    const initialValues: Record<string, string> = {}
+    if (params.includes('name')) {
+      initialValues['name'] = patient.firstName
+    }
+
+    const customParams = params.filter(p => p !== 'name')
+    if (customParams.length > 0) {
+      setSelectedTemplate(template)
+      setTemplateParams(params)
+      setParamValues(initialValues)
+    } else {
+      let interpolatedText = template.content
+      if (params.includes('name')) {
+        interpolatedText = interpolatedText.replace(/\{\{name\}\}/g, patient.firstName)
+      }
+      setInput(interpolatedText)
+      setShowTemplates(false)
+    }
+  }
+
+  const handleConfirmInterpolation = () => {
+    if (!selectedTemplate) return
+
+    let interpolatedText = selectedTemplate.content
+    templateParams.forEach(p => {
+      const val = paramValues[p] || `{{${p}}}`
+      const regex = new RegExp(`\\{\\{${p}\\}\\}`, 'g')
+      interpolatedText = interpolatedText.replace(regex, val)
+    })
+
+    setInput(interpolatedText)
+    setSelectedTemplate(null)
+    setShowTemplates(false)
+  }
 
   // Synchronize state when selected patient changes
   React.useEffect(() => {
@@ -317,6 +382,60 @@ export default function PatientCard({ patient: initialPatient, doctorId }: { pat
               </div>
               <div className="chat-input-area">
                 <div className="input-wrapper">
+                  {/* Template Selector Button and Popover */}
+                  <div className="template-dropdown-container">
+                    <button 
+                      type="button" 
+                      className={`template-trigger-btn ${showTemplates ? 'active' : ''}`}
+                      onClick={() => setShowTemplates(!showTemplates)}
+                      title="Выбрать быстрый шаблон"
+                    >
+                      <ClipboardList size={20} />
+                    </button>
+
+                    {showTemplates && (
+                      <div className="templates-popover glass-card">
+                        <div className="popover-header">
+                          <span>Быстрые шаблоны</span>
+                          <button type="button" className="popover-close-btn" onClick={() => setShowTemplates(false)}>
+                            <X size={14} />
+                          </button>
+                        </div>
+                        
+                        <div className="popover-search">
+                          <Search size={14} className="search-icon" />
+                          <input 
+                            type="text" 
+                            placeholder="Поиск..." 
+                            value={searchTemplateQuery}
+                            onChange={(e) => setSearchTemplateQuery(e.target.value)}
+                          />
+                        </div>
+
+                        <div className="popover-list">
+                          {templates.length === 0 ? (
+                            <div className="popover-empty">Загрузка...</div>
+                          ) : templates.filter(t => t.name.toLowerCase().includes(searchTemplateQuery.toLowerCase())).length === 0 ? (
+                            <div className="popover-empty">Ничего не найдено</div>
+                          ) : (
+                            templates
+                              .filter(t => t.name.toLowerCase().includes(searchTemplateQuery.toLowerCase()))
+                              .map(t => (
+                                <div 
+                                  key={t.id} 
+                                  className="popover-item"
+                                  onClick={() => handleSelectTemplate(t)}
+                                >
+                                  <div className="popover-item-name">{t.name}</div>
+                                  <div className="popover-item-preview">{t.content}</div>
+                                </div>
+                              ))
+                          )}
+                        </div>
+                      </div>
+                    )}
+                  </div>
+
                   <input 
                     type="text" 
                     placeholder="Введите сообщение..." 
@@ -356,6 +475,46 @@ export default function PatientCard({ patient: initialPatient, doctorId }: { pat
                   </label>
                 </div>
               </div>
+
+              {/* Custom Parameter Interpolation Modal */}
+              {selectedTemplate && (
+                <div className="interpolation-modal-overlay">
+                  <div className="interpolation-modal glass-card">
+                    <div className="interpolation-header">
+                      <h4><ClipboardList size={18} /> Заполнение параметров шаблона</h4>
+                      <button type="button" onClick={() => setSelectedTemplate(null)}><X size={18} /></button>
+                    </div>
+                    
+                    <div className="interpolation-body">
+                      <div className="template-preview-box">
+                        <strong>Шаблон:</strong> {selectedTemplate.name}
+                        <p>{selectedTemplate.content}</p>
+                      </div>
+                      
+                      <div className="interpolation-fields">
+                        {templateParams.map(param => (
+                          <div key={param} className="interpolation-field-group">
+                            <label>
+                              {param === 'name' ? 'Имя пациента' : param === 'date' ? 'Дата' : param === 'time' ? 'Время' : param}
+                            </label>
+                            <input 
+                              type="text"
+                              placeholder={`Введите значение для {{${param}}}`}
+                              value={paramValues[param] || ''}
+                              onChange={(e) => setParamValues({ ...paramValues, [param]: e.target.value })}
+                            />
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+
+                    <div className="interpolation-footer">
+                      <button type="button" className="btn-cancel" onClick={() => setSelectedTemplate(null)}>Отмена</button>
+                      <button type="button" className="btn-primary" onClick={handleConfirmInterpolation}>Вставить в чат</button>
+                    </div>
+                  </div>
+                </div>
+              )}
             </>
           ) : activeTab === 'DOCS' ? (
             <PatientDocuments medical={medical} onUpdate={handleUpdateMedical} />
@@ -671,6 +830,331 @@ export default function PatientCard({ patient: initialPatient, doctorId }: { pat
           align-items: center;
           gap: 0.4rem;
           cursor: pointer;
+        }
+
+        /* --- Templates Integration Styles --- */
+        .template-dropdown-container {
+          position: relative;
+          display: flex;
+          align-items: center;
+        }
+
+        .template-trigger-btn {
+          background: #f1f5f9;
+          border: 1px solid var(--border);
+          color: var(--text-secondary);
+          width: 45px;
+          height: 45px;
+          border-radius: 0.75rem;
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          cursor: pointer;
+          transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+        }
+
+        .template-trigger-btn:hover, .template-trigger-btn.active {
+          background: var(--primary);
+          color: white;
+          border-color: var(--primary);
+          box-shadow: 0 4px 10px rgba(37, 99, 235, 0.15);
+        }
+
+        .templates-popover {
+          position: absolute;
+          bottom: calc(100% + 0.75rem);
+          left: 0;
+          width: 320px;
+          background: white;
+          border-radius: 1.25rem;
+          box-shadow: 0 15px 30px rgba(0, 0, 0, 0.08);
+          z-index: 1000;
+          padding: 1rem;
+          display: flex;
+          flex-direction: column;
+          gap: 0.75rem;
+          border: 1px solid rgba(255, 255, 255, 0.5);
+          animation: popoverSlideUp 0.25s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+        }
+
+        @keyframes popoverSlideUp {
+          from { opacity: 0; transform: translateY(10px) scale(0.95); }
+          to { opacity: 1; transform: translateY(0) scale(1); }
+        }
+
+        .popover-header {
+          display: flex;
+          align-items: center;
+          justify-content: space-between;
+          font-weight: 700;
+          font-size: 0.85rem;
+          color: var(--text-main);
+          text-transform: uppercase;
+          letter-spacing: 0.05em;
+          padding-bottom: 0.25rem;
+          border-bottom: 1px solid #f1f5f9;
+        }
+
+        .popover-close-btn {
+          background: transparent;
+          border: none;
+          color: var(--text-secondary);
+          cursor: pointer;
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          padding: 0.25rem;
+          border-radius: 50%;
+          transition: all 0.2s;
+        }
+
+        .popover-close-btn:hover {
+          background: #f1f5f9;
+          color: var(--text-main);
+        }
+
+        .popover-search {
+          position: relative;
+          display: flex;
+          align-items: center;
+        }
+
+        .popover-search .search-icon {
+          position: absolute;
+          left: 0.75rem;
+          color: var(--text-secondary);
+        }
+
+        .popover-search input {
+          width: 100%;
+          padding: 0.5rem 0.75rem 0.5rem 2rem !important;
+          border: 1px solid var(--border);
+          border-radius: 0.5rem !important;
+          font-size: 0.8rem !important;
+          outline: none;
+          background: #f8fafc;
+        }
+
+        .popover-list {
+          max-height: 200px;
+          overflow-y: auto;
+          display: flex;
+          flex-direction: column;
+          gap: 0.5rem;
+          margin-right: -0.25rem;
+          padding-right: 0.25rem;
+        }
+
+        .popover-item {
+          padding: 0.75rem;
+          background: #f8fafc;
+          border-radius: 0.75rem;
+          cursor: pointer;
+          transition: all 0.2s;
+          border: 1px solid transparent;
+        }
+
+        .popover-item:hover {
+          background: white;
+          border-color: rgba(37, 99, 235, 0.3);
+          box-shadow: 0 4px 6px rgba(0,0,0,0.02);
+        }
+
+        .popover-item-name {
+          font-weight: 700;
+          font-size: 0.8rem;
+          color: var(--text-main);
+          margin-bottom: 0.2rem;
+        }
+
+        .popover-item-preview {
+          font-size: 0.75rem;
+          color: var(--text-secondary);
+          white-space: nowrap;
+          overflow: hidden;
+          text-overflow: ellipsis;
+        }
+
+        .popover-empty {
+          font-size: 0.75rem;
+          color: var(--text-secondary);
+          text-align: center;
+          padding: 1.5rem 0;
+          font-style: italic;
+        }
+
+        /* --- Parameter Interpolation Modal --- */
+        .interpolation-modal-overlay {
+          position: fixed;
+          top: 0;
+          left: 0;
+          right: 0;
+          bottom: 0;
+          background: rgba(15, 23, 42, 0.4);
+          backdrop-filter: blur(4px);
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          z-index: 2200;
+          animation: modalFadeIn 0.25s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+        }
+
+        @keyframes modalFadeIn {
+          from { opacity: 0; }
+          to { opacity: 1; }
+        }
+
+        .interpolation-modal {
+          width: 480px;
+          background: white;
+          border-radius: 1.5rem;
+          box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.15);
+          display: flex;
+          flex-direction: column;
+          overflow: hidden;
+          border: 1px solid rgba(255, 255, 255, 0.5);
+          animation: modalSlideUp 0.3s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+        }
+
+        @keyframes modalSlideUp {
+          from { transform: translateY(20px) scale(0.95); }
+          to { transform: translateY(0) scale(1); }
+        }
+
+        .interpolation-header {
+          display: flex;
+          align-items: center;
+          justify-content: space-between;
+          padding: 1.25rem 1.5rem;
+          border-bottom: 1px solid var(--border);
+        }
+
+        .interpolation-header h4 {
+          display: flex;
+          align-items: center;
+          gap: 0.5rem;
+          font-size: 1.05rem;
+          font-weight: 700;
+          color: var(--text-main);
+        }
+
+        .interpolation-header button {
+          background: transparent;
+          border: none;
+          color: var(--text-secondary);
+          cursor: pointer;
+          padding: 0.25rem;
+          border-radius: 50%;
+          display: flex;
+          align-items: center;
+          justify-content: center;
+        }
+
+        .interpolation-header button:hover {
+          background: #f1f5f9;
+          color: var(--text-main);
+        }
+
+        .interpolation-body {
+          padding: 1.5rem;
+          display: flex;
+          flex-direction: column;
+          gap: 1.25rem;
+          max-height: 400px;
+          overflow-y: auto;
+        }
+
+        .template-preview-box {
+          background: #f8fafc;
+          border: 1px solid var(--border);
+          padding: 1rem;
+          border-radius: 0.75rem;
+          font-size: 0.85rem;
+          color: var(--text-main);
+          line-height: 1.5;
+        }
+
+        .template-preview-box strong {
+          color: var(--primary);
+        }
+
+        .template-preview-box p {
+          margin-top: 0.4rem;
+          color: var(--text-secondary);
+        }
+
+        .interpolation-fields {
+          display: flex;
+          flex-direction: column;
+          gap: 1rem;
+        }
+
+        .interpolation-field-group {
+          display: flex;
+          flex-direction: column;
+          gap: 0.4rem;
+        }
+
+        .interpolation-field-group label {
+          font-size: 0.8rem;
+          font-weight: 700;
+          color: var(--text-main);
+        }
+
+        .interpolation-field-group input {
+          width: 100%;
+          padding: 0.75rem 1rem !important;
+          border: 1px solid var(--border);
+          border-radius: 0.75rem !important;
+          font-size: 0.9rem !important;
+          outline: none;
+          background: #f8fafc;
+          transition: all 0.2s;
+        }
+
+        .interpolation-field-group input:focus {
+          border-color: var(--primary);
+          background: white;
+          box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.08);
+        }
+
+        .interpolation-footer {
+          padding: 1.25rem 1.5rem;
+          border-top: 1px solid var(--border);
+          display: flex;
+          justify-content: flex-end;
+          gap: 0.75rem;
+          background: #f8fafc;
+        }
+
+        .interpolation-footer button {
+          padding: 0.65rem 1.25rem;
+          border-radius: 0.75rem;
+          font-size: 0.88rem;
+          font-weight: 600;
+          cursor: pointer;
+          transition: all 0.2s;
+          border: none;
+        }
+
+        .interpolation-footer .btn-cancel {
+          background: white;
+          color: var(--text-secondary);
+          border: 1px solid var(--border);
+        }
+
+        .interpolation-footer .btn-cancel:hover {
+          background: #f1f5f9;
+          color: var(--text-main);
+        }
+
+        .interpolation-footer .btn-primary {
+          background: var(--primary);
+          color: white;
+        }
+
+        .interpolation-footer .btn-primary:hover {
+          background: var(--primary-hover);
         }
       `}</style>
     </div>
