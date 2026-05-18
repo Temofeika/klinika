@@ -25,13 +25,8 @@ export async function GET(request: Request) {
         where: { id: doctorId }
       })
       if (doctor?.position === 'Администратор') {
-        // Administrator sees patients assigned to them OR completely unassigned patients
-        whereClause = {
-          OR: [
-            { doctorId },
-            { doctorId: null }
-          ]
-        }
+        // Administrator sees all patients in the database
+        whereClause = {}
       } else {
         // Standard doctors only see their explicitly assigned patients
         whereClause = { doctorId }
