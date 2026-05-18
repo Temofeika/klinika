@@ -27,7 +27,46 @@ interface Patient {
   dateOfBirth?: Date | null
   gender?: string | null
   notes?: string | null
+  medicalRecord?: string | null
   messages: Message[]
+}
+
+const defaultMedical = {
+  diagnoses: [
+    { id: '1', name: 'Гипертоническая болезнь II ст.', date: '12.03.2026', status: 'ACTIVE' },
+    { id: '2', name: 'Остеохондроз шейного отдела', date: '05.01.2026', status: 'CHRONIC' }
+  ],
+  medications: [
+    { id: '1', name: 'Лизиноприл 10мг', dosage: '1 таб. утром', period: 'Длительно' },
+    { id: '2', name: 'Магне B6', dosage: '1 таб. 3 раза в день', period: '1 месяц' }
+  ],
+  allergies: [
+    { id: '1', name: 'Пенициллин', severity: 'HIGH' },
+    { id: '2', name: 'Цитрусовые', severity: 'LOW' }
+  ],
+  appointments: [
+    { id: '1', date: '2026-05-19', time: '10:00', doctor: 'Др. Смирнова', service: 'Первичная консультация', status: 'UPCOMING' },
+    { id: '2', date: '2026-05-15', time: '14:30', doctor: 'Др. Иванов', service: 'УЗИ брюшной полости', status: 'COMPLETED' }
+  ],
+  billing: [
+    { id: '1', date: '15.05.2026', service: 'Первичный прием терапевта', amount: 2500, status: 'PAID' },
+    { id: '2', date: '12.05.2026', service: 'УЗИ брюшной полости', amount: 3200, status: 'PAID' },
+    { id: '3', date: '10.05.2026', service: 'Анализ крови (общий)', amount: 1500, status: 'PENDING' }
+  ],
+  labs: [
+    { id: '1', name: 'Глюкоза (кровь)', value: 5.4, unit: 'ммоль/л', reference: '3.3 - 5.5', status: 'NORMAL' },
+    { id: '2', name: 'Холестерин общий', value: 6.2, unit: 'ммоль/л', reference: '3.1 - 5.2', status: 'HIGH' },
+    { id: '3', name: 'Гемоглобин', value: 135, unit: 'г/л', reference: '130 - 160', status: 'NORMAL' },
+    { id: '4', name: 'Железо', value: 9.1, unit: 'мкмоль/л', reference: '10.7 - 32.2', status: 'LOW' }
+  ],
+  documents: [
+    { id: '1', name: 'Результаты ЭКГ.pdf', size: '1.2 MB', date: '12.05.2026' },
+    { id: '2', name: 'Направление на анализы.docx', size: '420 KB', date: '10.05.2026' }
+  ],
+  history: [
+    { date: '15.05.2026', desc: 'Обновлен список препаратов. Добавлен Магне B6. (Др. Смирнова)' },
+    { date: '12.03.2026', desc: 'Установлен основной диагноз: Гипертоническая болезнь II ст. (Др. Иванов)' }
+  ]
 }
 
 export default function PatientCard({ patient: initialPatient }: { patient: Patient }) {
@@ -38,6 +77,48 @@ export default function PatientCard({ patient: initialPatient }: { patient: Pati
   const [activeTab, setActiveTab] = React.useState<'CHAT' | 'DOCS' | 'APPS' | 'MEDICAL' | 'BILLING' | 'LABS'>('CHAT')
   const [platform, setPlatform] = React.useState<'TELEGRAM' | 'MAX'>('TELEGRAM')
   const [sending, setSending] = React.useState(false)
+
+  // Synchronize state when selected patient changes
+  React.useEffect(() => {
+    setPatient(initialPatient)
+  }, [initialPatient])
+
+  const getMedicalData = () => {
+    if (patient.medicalRecord) {
+      try {
+        return JSON.parse(patient.medicalRecord)
+      } catch (e) {
+        console.error('Failed to parse medicalRecord:', e)
+      }
+    }
+    return defaultMedical
+  }
+
+  const medical = getMedicalData()
+
+  const handleUpdateMedical = async (updatedMedical: any) => {
+    try {
+      const res = await fetch('/api/patient/medical', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          patientId: patient.id,
+          medicalRecord: updatedMedical
+        })
+      })
+
+      if (res.ok) {
+        setPatient(prev => ({
+          ...prev,
+          medicalRecord: JSON.stringify(updatedMedical)
+        }))
+      } else {
+        console.error('Failed to save medical records')
+      }
+    } catch (err) {
+      console.error('Error saving medical records:', err)
+    }
+  }
 
   const handleSend = async () => {
     if (!input.trim() || sending) return
@@ -275,15 +356,15 @@ export default function PatientCard({ patient: initialPatient }: { patient: Pati
               </div>
             </>
           ) : activeTab === 'DOCS' ? (
-            <PatientDocuments />
+            <PatientDocuments medical={medical} onUpdate={handleUpdateMedical} />
           ) : activeTab === 'APPS' ? (
-            <PatientAppointments onSendReminder={handleSendReminder} />
+            <PatientAppointments medical={medical} onUpdate={handleUpdateMedical} onSendReminder={handleSendReminder} />
           ) : activeTab === 'MEDICAL' ? (
-            <PatientMedicalCard />
+            <PatientMedicalCard medical={medical} onUpdate={handleUpdateMedical} />
           ) : activeTab === 'BILLING' ? (
-            <PatientBilling />
+            <PatientBilling medical={medical} onUpdate={handleUpdateMedical} />
           ) : (
-            <PatientLabs />
+            <PatientLabs medical={medical} onUpdate={handleUpdateMedical} />
           )}
         </div>
       </div>

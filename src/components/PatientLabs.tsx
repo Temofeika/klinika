@@ -1,7 +1,7 @@
 'use client'
 
 import React from 'react'
-import { Microscope, TrendingUp, TrendingDown, AlertCircle, Download, FileText } from 'lucide-react'
+import { Microscope, TrendingUp, TrendingDown, AlertCircle, Plus, X } from 'lucide-react'
 
 interface LabResult {
   id: string
@@ -12,65 +12,191 @@ interface LabResult {
   status: 'NORMAL' | 'HIGH' | 'LOW'
 }
 
-export default function PatientLabs() {
-  const [results, setResults] = React.useState<LabResult[]>([
-    { id: '1', name: 'Глюкоза (кровь)', value: 5.4, unit: 'ммоль/л', reference: '3.3 - 5.5', status: 'NORMAL' },
-    { id: '2', name: 'Холестерин общий', value: 6.2, unit: 'ммоль/л', reference: '3.1 - 5.2', status: 'HIGH' },
-    { id: '3', name: 'Гемоглобин', value: 135, unit: 'г/л', reference: '130 - 160', status: 'NORMAL' },
-    { id: '4', name: 'Железо', value: 9.1, unit: 'мкмоль/л', reference: '10.7 - 32.2', status: 'LOW' }
-  ])
+interface PatientLabsProps {
+  medical: {
+    labs: LabResult[]
+    history: { date: string; desc: string }[]
+  }
+  onUpdate: (updated: any) => void
+}
+
+export default function PatientLabs({ medical, onUpdate }: PatientLabsProps) {
+  const [showModal, setShowModal] = React.useState(false)
+
+  // Form states
+  const [labName, setLabName] = React.useState('')
+  const [labValue, setLabValue] = React.useState('')
+  const [labUnit, setLabUnit] = React.useState('ммоль/л')
+  const [labReference, setLabReference] = React.useState('')
+  const [labStatus, setLabStatus] = React.useState<'NORMAL' | 'HIGH' | 'LOW'>('NORMAL')
+
+  const results = medical.labs || []
+
+  const handleAddLabResult = (e: React.FormEvent) => {
+    e.preventDefault()
+    const parsedValue = parseFloat(labValue)
+    if (!labName.trim() || isNaN(parsedValue)) return
+
+    const today = new Date().toLocaleDateString('ru-RU')
+    const newLab: LabResult = {
+      id: Date.now().toString(),
+      name: labName,
+      value: parsedValue,
+      unit: labUnit,
+      reference: labReference || '—',
+      status: labStatus
+    }
+
+    const statusText = labStatus === 'HIGH' ? 'Выше нормы' : labStatus === 'LOW' ? 'Ниже нормы' : 'В норме'
+    const updated = {
+      ...medical,
+      labs: [...results, newLab],
+      history: [
+        {
+          date: today,
+          desc: `Зарегистрирован анализ: ${labName} — ${parsedValue} ${labUnit} (${statusText}, норма: ${newLab.reference}).`
+        },
+        ...(medical.history || [])
+      ]
+    }
+
+    onUpdate(updated)
+    setLabName('')
+    setLabValue('')
+    setLabReference('')
+    setLabStatus('NORMAL')
+    setShowModal(false)
+  }
+
+  const hasAlerts = results.some(r => r.status !== 'NORMAL')
 
   return (
     <div className="labs-container">
       <div className="labs-header">
         <div className="header-info">
           <h3>Результаты лабораторных исследований</h3>
-          <p>Последнее обновление: 15 мая 2026</p>
+          <p>Последнее обновление: {results.length > 0 ? 'Сегодня' : 'Данные отсутствуют'}</p>
         </div>
-        <button className="btn-primary-small"><FileText size={16} /> Полный отчет (PDF)</button>
+        <button className="btn-primary-small" onClick={() => setShowModal(true)}>
+          <Plus size={16} /> Добавить анализ
+        </button>
       </div>
 
       <div className="results-list glass-card">
-        <table className="labs-table">
-          <thead>
-            <tr>
-              <th>Показатель</th>
-              <th>Результат</th>
-              <th>Ед. изм.</th>
-              <th>Норма</th>
-              <th>Статус</th>
-            </tr>
-          </thead>
-          <tbody>
-            {results.map(r => (
-              <tr key={r.id}>
-                <td className="indicator-name">{r.name}</td>
-                <td className={`value-cell ${r.status.toLowerCase()}`}>{r.value}</td>
-                <td>{r.unit}</td>
-                <td className="ref-cell">{r.reference}</td>
-                <td>
-                  <div className={`status-pill ${r.status.toLowerCase()}`}>
-                    {r.status === 'HIGH' && <TrendingUp size={14} />}
-                    {r.status === 'LOW' && <TrendingDown size={14} />}
-                    {r.status === 'NORMAL' ? 'В норме' : r.status === 'HIGH' ? 'Выше' : 'Ниже'}
-                  </div>
-                </td>
+        {results.length > 0 ? (
+          <table className="labs-table">
+            <thead>
+              <tr>
+                <th>Показатель</th>
+                <th>Результат</th>
+                <th>Ед. изм.</th>
+                <th>Норма</th>
+                <th>Статус</th>
               </tr>
-            ))}
-          </tbody>
-        </table>
+            </thead>
+            <tbody>
+              {results.map(r => (
+                <tr key={r.id}>
+                  <td className="indicator-name">{r.name}</td>
+                  <td className={`value-cell ${r.status.toLowerCase()}`}>{r.value}</td>
+                  <td>{r.unit}</td>
+                  <td className="ref-cell">{r.reference}</td>
+                  <td>
+                    <div className={`status-pill ${r.status.toLowerCase()}`}>
+                      {r.status === 'HIGH' && <TrendingUp size={14} />}
+                      {r.status === 'LOW' && <TrendingDown size={14} />}
+                      {r.status === 'NORMAL' ? 'В норме' : r.status === 'HIGH' ? 'Выше' : 'Ниже'}
+                    </div>
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        ) : (
+          <p className="no-data">Результаты анализов отсутствуют</p>
+        )}
       </div>
 
       <div className="lab-alerts">
-        {results.some(r => r.status !== 'NORMAL') && (
+        {hasAlerts && (
           <div className="alert-card warning">
             <AlertCircle size={20} />
             <div>
-              <strong>Внимание!</strong> Обнаружены отклонения от нормы в показателях липидного профиля и обмена железа.
+              <strong>Внимание!</strong> Обнаружены отклонения от нормы в показателях. Рекомендуется консультация лечащего врача.
             </div>
           </div>
         )}
       </div>
+
+      {/* --- ADD LAB MODAL --- */}
+      {showModal && (
+        <div className="sub-modal-overlay">
+          <div className="sub-modal-content glass-card">
+            <div className="sub-modal-header">
+              <h3>Добавить результат анализа</h3>
+              <button className="sub-close-btn" onClick={() => setShowModal(false)}><X size={18} /></button>
+            </div>
+            <form onSubmit={handleAddLabResult} className="sub-modal-form">
+              <div className="sub-form-group">
+                <label>Показатель</label>
+                <input 
+                  type="text" 
+                  required 
+                  placeholder="Например, Общий холестерин"
+                  value={labName}
+                  onChange={e => setLabName(e.target.value)}
+                />
+              </div>
+              <div className="form-grid">
+                <div className="sub-form-group">
+                  <label>Результат</label>
+                  <input 
+                    type="number" 
+                    step="0.01"
+                    required 
+                    placeholder="Например, 5.4"
+                    value={labValue}
+                    onChange={e => setLabValue(e.target.value)}
+                  />
+                </div>
+                <div className="sub-form-group">
+                  <label>Единица измерения</label>
+                  <input 
+                    type="text" 
+                    required 
+                    placeholder="ммоль/л, г/л и т.д."
+                    value={labUnit}
+                    onChange={e => setLabUnit(e.target.value)}
+                  />
+                </div>
+              </div>
+              <div className="form-grid">
+                <div className="sub-form-group">
+                  <label>Норма (Референтный интервал)</label>
+                  <input 
+                    type="text" 
+                    placeholder="Например, 3.1 - 5.2"
+                    value={labReference}
+                    onChange={e => setLabReference(e.target.value)}
+                  />
+                </div>
+                <div className="sub-form-group">
+                  <label>Соответствие норме</label>
+                  <select value={labStatus} onChange={e => setLabStatus(e.target.value as any)}>
+                    <option value="NORMAL">В норме (Normal)</option>
+                    <option value="HIGH">Выше нормы (High)</option>
+                    <option value="LOW">Ниже нормы (Low)</option>
+                  </select>
+                </div>
+              </div>
+              <div className="sub-modal-footer">
+                <button type="button" className="sub-btn-sec" onClick={() => setShowModal(false)}>Отмена</button>
+                <button type="submit" className="sub-btn-prim">Сохранить</button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
 
       <style jsx>{`
         .labs-container {
@@ -187,6 +313,135 @@ export default function PatientLabs() {
           background: #fffbeb;
           border: 1px solid #fef3c7;
           color: #92400e;
+        }
+
+        .no-data {
+          font-size: 0.85rem;
+          color: var(--text-secondary);
+          text-align: center;
+          padding: 2rem;
+          font-style: italic;
+        }
+
+        /* --- SUB-MODAL STYLING --- */
+        .sub-modal-overlay {
+          position: fixed;
+          top: 0;
+          left: 0;
+          right: 0;
+          bottom: 0;
+          background: rgba(15, 23, 42, 0.4);
+          backdrop-filter: blur(4px);
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          z-index: 2000;
+          animation: fadeIn 0.2s ease-out;
+        }
+
+        .sub-modal-content {
+          width: 450px;
+          padding: 1.5rem;
+          background: white;
+          border-radius: 1.25rem;
+          box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.1);
+        }
+
+        .sub-modal-header {
+          display: flex;
+          align-items: center;
+          justify-content: space-between;
+          margin-bottom: 1.5rem;
+          border-bottom: 1px solid var(--border);
+          padding-bottom: 0.5rem;
+        }
+
+        .sub-modal-header h3 {
+          font-size: 1.1rem;
+          font-weight: 700;
+          color: var(--text-main);
+        }
+
+        .sub-close-btn {
+          background: transparent;
+          border: none;
+          color: var(--text-secondary);
+          cursor: pointer;
+          padding: 0.25rem;
+          border-radius: 0.4rem;
+        }
+
+        .sub-close-btn:hover {
+          background: #f1f5f9;
+        }
+
+        .sub-modal-form {
+          display: flex;
+          flex-direction: column;
+          gap: 1rem;
+        }
+
+        .form-grid {
+          display: grid;
+          grid-template-columns: 1fr 1fr;
+          gap: 1rem;
+        }
+
+        .sub-form-group {
+          display: flex;
+          flex-direction: column;
+          gap: 0.4rem;
+        }
+
+        .sub-form-group label {
+          font-size: 0.8rem;
+          font-weight: 600;
+          color: var(--text-main);
+        }
+
+        .sub-form-group input, .sub-form-group select {
+          padding: 0.6rem 0.8rem;
+          border: 1px solid var(--border);
+          border-radius: 0.5rem;
+          outline: none;
+          font-size: 0.9rem;
+        }
+
+        .sub-form-group input:focus, .sub-form-group select:focus {
+          border-color: var(--primary);
+        }
+
+        .sub-modal-footer {
+          display: flex;
+          justify-content: flex-end;
+          gap: 0.75rem;
+          margin-top: 1rem;
+        }
+
+        .sub-btn-sec {
+          padding: 0.5rem 1rem;
+          background: #f1f5f9;
+          border: none;
+          color: var(--text-secondary);
+          border-radius: 0.5rem;
+          font-size: 0.85rem;
+          font-weight: 600;
+          cursor: pointer;
+        }
+
+        .sub-btn-prim {
+          padding: 0.5rem 1rem;
+          background: var(--primary);
+          border: none;
+          color: white;
+          border-radius: 0.5rem;
+          font-size: 0.85rem;
+          font-weight: 600;
+          cursor: pointer;
+        }
+
+        .sub-btn-prim:hover {
+          background: #1d4ed8;
         }
       `}</style>
     </div>
