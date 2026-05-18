@@ -60,3 +60,64 @@ export async function GET(request: Request) {
     return NextResponse.json({ error: 'Internal server error' }, { status: 500 })
   }
 }
+
+export async function PUT(request: Request) {
+  try {
+    const body = await request.json()
+    const { id, firstName, lastName, phone, email, dateOfBirth, gender, notes } = body
+
+    if (!id) {
+      return NextResponse.json({ error: 'Missing patient ID' }, { status: 400 })
+    }
+
+    const updateData: any = {}
+    if (firstName !== undefined) updateData.firstName = firstName
+    if (lastName !== undefined) updateData.lastName = lastName
+    if (email !== undefined) updateData.email = email
+    if (gender !== undefined) updateData.gender = gender
+    if (notes !== undefined) updateData.notes = notes
+    
+    if (dateOfBirth !== undefined) {
+      updateData.dateOfBirth = dateOfBirth ? new Date(dateOfBirth) : null
+    }
+
+    if (phone !== undefined) {
+      let cleaned = phone.replace(/[^\d+]/g, '')
+      if (cleaned.startsWith('8') && cleaned.length === 11) {
+        cleaned = '+7' + cleaned.substring(1)
+      }
+      if (cleaned.startsWith('7') && cleaned.length === 11) {
+        cleaned = '+' + cleaned
+      }
+      if (!cleaned.startsWith('+') && cleaned.length > 0) {
+        cleaned = '+' + cleaned
+      }
+      
+      const duplicate = await prisma.patient.findFirst({
+        where: {
+          phone: cleaned,
+          NOT: { id }
+        }
+      })
+      if (duplicate) {
+        return NextResponse.json({ error: 'Пациент с таким номером телефона уже зарегистрирован!' }, { status: 409 })
+      }
+      updateData.phone = cleaned
+    }
+
+    const updated = await prisma.patient.update({
+      where: { id },
+      data: updateData,
+      include: {
+        messages: true,
+        messengerAccounts: true,
+        doctor: true
+      }
+    })
+
+    return NextResponse.json(updated)
+  } catch (error: any) {
+    console.error('Patient UPDATE error:', error)
+    return NextResponse.json({ error: 'Internal server error', details: error.message }, { status: 500 })
+  }
+}

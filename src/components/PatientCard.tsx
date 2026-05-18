@@ -89,9 +89,31 @@ export default function PatientCard({ patient: initialPatient, doctorId }: { pat
   const [doctorsList, setDoctorsList] = React.useState<any[]>([])
   const [assigningDoc, setAssigningDoc] = React.useState(false)
 
+  // Edit Profile States
+  const [isEditing, setIsEditing] = React.useState(false)
+  const [editForm, setEditForm] = React.useState({
+    firstName: '',
+    lastName: '',
+    phone: '',
+    email: '',
+    dateOfBirth: '',
+    gender: '',
+    notes: ''
+  })
+
   // Synchronize state when selected patient changes
   React.useEffect(() => {
     setPatient(initialPatient)
+    setIsEditing(false)
+    setEditForm({
+      firstName: initialPatient.firstName || '',
+      lastName: initialPatient.lastName || '',
+      phone: initialPatient.phone || '',
+      email: initialPatient.email || '',
+      dateOfBirth: initialPatient.dateOfBirth ? new Date(initialPatient.dateOfBirth).toISOString().split('T')[0] : '',
+      gender: initialPatient.gender || '',
+      notes: initialPatient.notes || ''
+    })
   }, [initialPatient])
 
   // Fetch doctors list for routing dropdown selection
@@ -128,6 +150,29 @@ export default function PatientCard({ patient: initialPatient, doctorId }: { pat
       console.error('Failed to assign doctor:', err)
     } finally {
       setAssigningDoc(false)
+    }
+  }
+
+  const handleSaveProfile = async () => {
+    try {
+      const res = await fetch('/api/patient', {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          id: patient.id,
+          ...editForm
+        })
+      })
+      const data = await res.json()
+      if (res.ok) {
+        setPatient(data)
+        setIsEditing(false)
+      } else {
+        alert(data.error || 'Ошибка при сохранении профиля')
+      }
+    } catch (err: any) {
+      console.error(err)
+      alert('Ошибка соединения с сервером')
     }
   }
 
@@ -353,6 +398,10 @@ export default function PatientCard({ patient: initialPatient, doctorId }: { pat
   const handleKeyPress = (e: React.KeyboardEvent) => {
     if (e.key === 'Enter') handleSend()
   }
+
+  const activeDoctorObj = doctorsList.find(d => d.id === doctorId)
+  const isAdministrator = activeDoctorObj?.position === 'Администратор'
+
   return (
     <div className="patient-container">
       <div className="glass-card patient-header">
@@ -393,22 +442,109 @@ export default function PatientCard({ patient: initialPatient, doctorId }: { pat
       </div>
 
       <div className="patient-content">
-        <div className="glass-card patient-details">
-          <h3><FileText size={18} /> Заметки</h3>
-          <p>{patient.notes || 'Заметок нет'}</p>
-          
-          <div className="messenger-status">
-            <h3>Подключенные мессенджеры</h3>
-            <div className="status-item">
-              <span className="messenger-badge badge-telegram">Telegram</span>
-              <span className="status-online">Активен</span>
+        {isEditing ? (
+          <div className="glass-card patient-details editing-sidebar">
+            <h3 className="editing-title">Редактирование профиля</h3>
+            <div className="edit-form-fields">
+              <div className="edit-field">
+                <label>Фамилия</label>
+                <input 
+                  type="text" 
+                  value={editForm.lastName} 
+                  onChange={(e) => setEditForm({ ...editForm, lastName: e.target.value })} 
+                  className="edit-input"
+                />
+              </div>
+              <div className="edit-field">
+                <label>Имя</label>
+                <input 
+                  type="text" 
+                  value={editForm.firstName} 
+                  onChange={(e) => setEditForm({ ...editForm, firstName: e.target.value })} 
+                  className="edit-input"
+                />
+              </div>
+              <div className="edit-field">
+                <label>Телефон</label>
+                <input 
+                  type="text" 
+                  value={editForm.phone} 
+                  onChange={(e) => setEditForm({ ...editForm, phone: e.target.value })} 
+                  className="edit-input"
+                />
+              </div>
+              <div className="edit-field">
+                <label>Email</label>
+                <input 
+                  type="email" 
+                  value={editForm.email} 
+                  onChange={(e) => setEditForm({ ...editForm, email: e.target.value })} 
+                  className="edit-input"
+                />
+              </div>
+              <div className="edit-field">
+                <label>Дата рождения</label>
+                <input 
+                  type="date" 
+                  value={editForm.dateOfBirth} 
+                  onChange={(e) => setEditForm({ ...editForm, dateOfBirth: e.target.value })} 
+                  className="edit-input"
+                />
+              </div>
+              <div className="edit-field">
+                <label>Пол</label>
+                <select 
+                  value={editForm.gender} 
+                  onChange={(e) => setEditForm({ ...editForm, gender: e.target.value })} 
+                  className="edit-select"
+                >
+                  <option value="">Не указан</option>
+                  <option value="MALE">Мужской</option>
+                  <option value="FEMALE">Женский</option>
+                </select>
+              </div>
+              <div className="edit-field">
+                <label>Заметки / Описание</label>
+                <textarea 
+                  value={editForm.notes} 
+                  onChange={(e) => setEditForm({ ...editForm, notes: e.target.value })} 
+                  className="edit-textarea"
+                  rows={4}
+                />
+              </div>
             </div>
-            <div className="status-item">
-              <span className="messenger-badge badge-max">Max</span>
-              <span className="status-online">Активен</span>
+            <div className="edit-actions">
+              <button className="btn-save-profile" onClick={handleSaveProfile}>Сохранить</button>
+              <button className="btn-cancel-profile" onClick={() => setIsEditing(false)}>Отмена</button>
             </div>
           </div>
-        </div>
+        ) : (
+          <div className="glass-card patient-details">
+            <h3><FileText size={18} /> Заметки</h3>
+            <p className="patient-notes-para">{patient.notes || 'Заметок нет'}</p>
+            
+            <div className="messenger-status">
+              <h3>Подключенные мессенджеры</h3>
+              <div className="status-item">
+                <span className="messenger-badge badge-telegram">Telegram</span>
+                <span className="status-online">Активен</span>
+              </div>
+              <div className="status-item">
+                <span className="messenger-badge badge-max">Max</span>
+                <span className="status-online">Активен</span>
+              </div>
+            </div>
+
+            {isAdministrator && (
+              <button 
+                className="btn-edit-profile-trigger" 
+                onClick={() => setIsEditing(true)}
+              >
+                Редактировать профиль
+              </button>
+            )}
+          </div>
+        )}
 
         <div className="glass-card main-activity-container">
           <div className="tabs-navigation">
@@ -1407,6 +1543,117 @@ export default function PatientCard({ patient: initialPatient, doctorId }: { pat
         .doctor-select-input:disabled {
           opacity: 0.6;
           cursor: not-allowed;
+        }
+
+        /* Edit Profile Styles */
+        .editing-sidebar {
+          max-height: 85vh;
+          overflow-y: auto;
+        }
+
+        .editing-title {
+          font-size: 1.1rem;
+          font-weight: 700;
+          color: var(--text-main);
+          margin-bottom: 1.25rem;
+          border-bottom: 1px solid var(--border);
+          padding-bottom: 0.5rem;
+        }
+
+        .edit-form-fields {
+          display: flex;
+          flex-direction: column;
+          gap: 1rem;
+        }
+
+        .edit-field {
+          display: flex;
+          flex-direction: column;
+          gap: 0.35rem;
+        }
+
+        .edit-field label {
+          font-size: 0.75rem;
+          font-weight: 600;
+          color: var(--text-secondary);
+          text-transform: uppercase;
+          letter-spacing: 0.05em;
+        }
+
+        .edit-input, .edit-select, .edit-textarea {
+          padding: 0.55rem 0.75rem;
+          border-radius: 0.6rem;
+          border: 1px solid var(--border);
+          background: rgba(255, 255, 255, 0.9);
+          color: var(--text-main);
+          font-size: 0.85rem;
+          font-weight: 500;
+          outline: none;
+          transition: border-color 0.2s, box-shadow 0.2s;
+        }
+
+        .edit-input:focus, .edit-select:focus, .edit-textarea:focus {
+          border-color: var(--primary);
+          box-shadow: 0 0 0 2px rgba(var(--primary-rgb), 0.1);
+        }
+
+        .edit-actions {
+          display: flex;
+          gap: 0.75rem;
+          margin-top: 1.5rem;
+        }
+
+        .btn-save-profile {
+          flex: 1;
+          padding: 0.6rem;
+          background: var(--primary);
+          color: white;
+          border: none;
+          border-radius: 0.6rem;
+          font-weight: 600;
+          font-size: 0.85rem;
+          cursor: pointer;
+          transition: background 0.2s;
+        }
+
+        .btn-save-profile:hover {
+          background: var(--primary-hover);
+        }
+
+        .btn-cancel-profile {
+          padding: 0.6rem 1rem;
+          background: rgba(0, 0, 0, 0.05);
+          color: var(--text-main);
+          border: none;
+          border-radius: 0.6rem;
+          font-weight: 600;
+          font-size: 0.85rem;
+          cursor: pointer;
+          transition: background 0.2s;
+        }
+
+        .btn-cancel-profile:hover {
+          background: rgba(0, 0, 0, 0.1);
+        }
+
+        .btn-edit-profile-trigger {
+          width: 100%;
+          margin-top: 1.25rem;
+          padding: 0.6rem;
+          background: rgba(0, 0, 0, 0.04);
+          border: 1px dashed var(--border);
+          border-radius: 0.6rem;
+          color: var(--text-main);
+          font-weight: 600;
+          font-size: 0.85rem;
+          cursor: pointer;
+          transition: all 0.2s;
+        }
+
+        .btn-edit-profile-trigger:hover {
+          background: rgba(var(--primary-rgb), 0.05);
+          border-color: var(--primary);
+          color: var(--primary);
         }
       `}</style>
     </div>
