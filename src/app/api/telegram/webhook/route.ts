@@ -172,7 +172,8 @@ export async function POST(request: Request) {
             await sendTelegramMessage(
               token, 
               telegramId, 
-              "Спасибо! Мы успешно идентифицировали вас в нашей системе. Врач видит всю вашу историю приемов и ответит вам прямо здесь."
+              "Спасибо! Мы успешно идентифицировали вас в нашей системе. Врач видит всю вашу историю приемов и ответит вам прямо здесь.",
+              { remove_keyboard: true }
             )
           }
         } else {
@@ -187,7 +188,8 @@ export async function POST(request: Request) {
             await sendTelegramMessage(
               token, 
               telegramId, 
-              "Спасибо! Ваш номер телефона успешно подтвержден. Врач скоро ответит вам."
+              "Спасибо! Ваш номер телефона успешно подтвержден. Врач скоро ответит вам.",
+              { remove_keyboard: true }
             )
           }
         }
