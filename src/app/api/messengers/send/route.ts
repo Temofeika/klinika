@@ -53,7 +53,7 @@ export async function POST(request: Request) {
           source: platform,
           isIncoming: false,
           isRead: true, // outgoing messages are read by default
-          status: platform === 'CHATWOOT' ? 'PENDING' : 'SENT',
+          status: platform === 'TELEGRAM' ? 'PENDING' : 'SENT',
           patientId
         }
       }),

@@ -13,7 +13,7 @@ export async function GET() {
         patient: {
           include: {
             messengerAccounts: {
-              where: { platform: 'CHATWOOT' }
+              where: { platform: 'TELEGRAM' }
             }
           }
         }
@@ -22,12 +22,11 @@ export async function GET() {
 
     // Format the queue payload
     const queue = pendingMessages.map(msg => {
-      const chatwootAccount = msg.patient.messengerAccounts[0]
+      const telegramAccount = msg.patient.messengerAccounts[0]
       return {
         messageId: msg.id,
         content: msg.content,
-        // The external ID of the CHATWOOT account stores the Chatwoot Conversation ID
-        conversationId: chatwootAccount?.externalId || '',
+        telegramId: telegramAccount?.externalId || '',
         patientPhone: msg.patient.phone,
         patientName: `${msg.patient.firstName} ${msg.patient.lastName}`.trim()
       }
