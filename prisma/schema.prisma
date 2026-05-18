@@ -34,6 +34,7 @@ model Message {
   timestamp   DateTime @default(now())
   isIncoming  Boolean  @default(true)
   isRead      Boolean  @default(false)
+  status      String   @default("SENT") // "PENDING", "SENT"
   
   patient     Patient  @relation(fields: [patientId], references: [id])
   patientId   String

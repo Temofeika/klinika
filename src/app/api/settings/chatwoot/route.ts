@@ -5,7 +5,7 @@ export async function GET() {
   try {
     const settings = await prisma.systemSetting.findMany({
       where: {
-        key: { in: ['CHATWOOT_BASE_URL', 'CHATWOOT_ACCOUNT_ID', 'CHATWOOT_API_TOKEN'] }
+        key: { in: ['CHATWOOT_BASE_URL', 'CHATWOOT_ACCOUNT_ID', 'CHATWOOT_API_TOKEN', 'CHATWOOT_INBOX_ID'] }
       }
     })
 
@@ -17,7 +17,8 @@ export async function GET() {
     return NextResponse.json({
       baseUrl: config['CHATWOOT_BASE_URL'] || '',
       accountId: config['CHATWOOT_ACCOUNT_ID'] || '',
-      apiToken: config['CHATWOOT_API_TOKEN'] || ''
+      apiToken: config['CHATWOOT_API_TOKEN'] || '',
+      inboxId: config['CHATWOOT_INBOX_ID'] || ''
     })
   } catch (error) {
     console.error('Failed to get Chatwoot settings', error)
@@ -28,7 +29,7 @@ export async function GET() {
 export async function POST(request: Request) {
   try {
     const body = await request.json()
-    const { baseUrl, accountId, apiToken } = body
+    const { baseUrl, accountId, apiToken, inboxId } = body
 
     // Update or create settings in a transaction
     await prisma.$transaction([
@@ -46,6 +47,11 @@ export async function POST(request: Request) {
         where: { key: 'CHATWOOT_API_TOKEN' },
         update: { value: apiToken || '' },
         create: { key: 'CHATWOOT_API_TOKEN', value: apiToken || '' }
+      }),
+      prisma.systemSetting.upsert({
+        where: { key: 'CHATWOOT_INBOX_ID' },
+        update: { value: inboxId || '' },
+        create: { key: 'CHATWOOT_INBOX_ID', value: inboxId || '' }
       })
     ])
 

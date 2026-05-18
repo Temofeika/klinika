@@ -12,7 +12,15 @@ export default function SettingsPage() {
   const [cwUrl, setCwUrl] = React.useState('')
   const [cwAccountId, setCwAccountId] = React.useState('')
   const [cwToken, setCwToken] = React.useState('')
+  const [cwInboxId, setCwInboxId] = React.useState('')
+  const [origin, setOrigin] = React.useState('https://[ваш-домен]')
   const [isSaving, setIsSaving] = React.useState(false)
+
+  React.useEffect(() => {
+    if (typeof window !== 'undefined') {
+      setOrigin(window.location.origin)
+    }
+  }, [])
 
   React.useEffect(() => {
     if (activeSection === 'MESSENGERS') {
@@ -23,6 +31,7 @@ export default function SettingsPage() {
             setCwUrl(data.baseUrl || '')
             setCwAccountId(data.accountId || '')
             setCwToken(data.apiToken || '')
+            setCwInboxId(data.inboxId || '')
           }
         })
         .catch(console.error)
@@ -35,7 +44,7 @@ export default function SettingsPage() {
       const res = await fetch('/api/settings/chatwoot', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ baseUrl: cwUrl, accountId: cwAccountId, apiToken: cwToken })
+        body: JSON.stringify({ baseUrl: cwUrl, accountId: cwAccountId, apiToken: cwToken, inboxId: cwInboxId })
       })
       if (res.ok) {
         alert('Настройки Chatwoot успешно сохранены!')
@@ -101,12 +110,17 @@ export default function SettingsPage() {
                 <input type="password" placeholder="••••••••••••••••••••" value={cwToken} onChange={e => setCwToken(e.target.value)} />
                 <span className="field-hint">Ваш личный токен доступа (Profile Settings -{'>'} Access Token).</span>
               </div>
+              <div className="form-group">
+                <label>API Inbox ID</label>
+                <input type="text" placeholder="Например: 2" value={cwInboxId} onChange={e => setCwInboxId(e.target.value)} />
+                <span className="field-hint">ID вашего Custom API канала в Chatwoot (создается при добавлении API канала).</span>
+              </div>
               
               <div className="webhook-info mt-4 p-4 bg-blue-50 rounded-lg border border-blue-100">
                 <h5 className="text-sm font-semibold text-blue-800 mb-2">Настройка Webhook</h5>
                 <p className="text-xs text-blue-600">Скопируйте этот URL и добавьте его в настройки Webhook в вашем Chatwoot (выберите событие <b>message_created</b>):</p>
                 <code className="block mt-2 p-2 bg-white rounded text-xs text-slate-700 border border-slate-200">
-                  https://[ваш-домен]/api/chatwoot/webhook
+                  {origin}/api/chatwoot/webhook
                 </code>
               </div>
 
