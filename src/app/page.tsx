@@ -30,14 +30,21 @@ export default function Home() {
       try {
         const res = await fetch('/api/doctors')
         const data = await res.json()
-        setDoctors(data)
-        if (data.length > 0) {
-          setActiveDoctor(data[0]) // Default to first doctor
+        if (res.ok && Array.isArray(data)) {
+          setDoctors(data)
+          if (data.length > 0) {
+            setActiveDoctor(data[0]) // Default to first doctor
+          } else {
+            setLoading(false)
+          }
         } else {
+          console.error('Failed to load doctors:', data.error || 'Invalid response')
+          setDoctors([])
           setLoading(false)
         }
       } catch (err) {
         console.error('Failed to load doctors:', err)
+        setDoctors([])
         setLoading(false)
       }
     }
@@ -274,7 +281,7 @@ export default function Home() {
               {showDocMenu && (
                 <div className="doctor-dropdown-menu glass-card">
                   <div className="menu-header">Сменить учетную запись врача</div>
-                  {doctors.map(doc => (
+                  {Array.isArray(doctors) && doctors.map(doc => (
                     <div 
                       key={doc.id} 
                       className={`doctor-menu-item ${activeDoctor?.id === doc.id ? 'active' : ''}`}
