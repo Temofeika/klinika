@@ -26,7 +26,7 @@ export async function POST(request: Request) {
     if (platform === 'MAX') {
       console.log(`Sending MAX message to ${patientAccount.externalId}...`);
       const maxRes = await sendMaxMessage(patientAccount.externalId, content, process.env.MAX_API_KEY);
-      
+
       if (!maxRes.success) {
         console.error('Failed to send Max message:', maxRes.error);
         return NextResponse.json({ error: 'Failed to send message to Max platform' }, { status: 502 });
@@ -42,7 +42,7 @@ export async function POST(request: Request) {
       }
     } else if (platform === 'TELEGRAM') {
       console.log(`Sending TELEGRAM message via Bot API to chat ${patientAccount.externalId}...`);
-      
+
       // Fetch Bot Token from database settings
       const tokenSetting = await prisma.systemSetting.findUnique({
         where: { key: 'TELEGRAM_BOT_TOKEN' }
@@ -51,8 +51,8 @@ export async function POST(request: Request) {
 
       if (!token) {
         console.error('[TELEGRAM BOT] Cannot send message: Missing Bot Token in settings.');
-        return NextResponse.json({ 
-          error: 'Отсутствует Token Telegram-бота. Перейдите в "Настройки" -> "Мессенджеры" и укажите его.' 
+        return NextResponse.json({
+          error: 'Отсутствует Token Telegram-бота. Перейдите в "Настройки" -> "Мессенджеры" и укажите его.'
         }, { status: 400 });
       }
 
@@ -67,7 +67,7 @@ export async function POST(request: Request) {
         });
 
         const tgData = await tgRes.json();
-        
+
         if (!tgData.ok) {
           console.error('[TELEGRAM BOT API ERROR]', tgData.description);
           return NextResponse.json({ error: `Telegram Bot API error: ${tgData.description}` }, { status: 502 });
