@@ -14,12 +14,11 @@ interface PatientListProps {
   patients: PatientSummary[]
   selectedId: string
   onSelect: (id: string) => void
-  onPatientAdded: (patient: any) => void
+  onAddClick: () => void
 }
 
-export default function PatientList({ patients, selectedId, onSelect, onPatientAdded }: PatientListProps) {
+export default function PatientList({ patients, selectedId, onSelect, onAddClick }: PatientListProps) {
   const [search, setSearch] = React.useState('')
-  const [showModal, setShowModal] = React.useState(false)
 
   const filteredPatients = patients.filter(p => 
     `${p.firstName} ${p.lastName}`.toLowerCase().includes(search.toLowerCase()) ||
@@ -29,7 +28,7 @@ export default function PatientList({ patients, selectedId, onSelect, onPatientA
   return (
     <div className="patient-list-container">
       <div className="list-actions">
-        <button className="add-patient-btn" onClick={() => setShowModal(true)}>
+        <button className="add-patient-btn" onClick={onAddClick}>
           <Plus size={16} /> Новый пациент
         </button>
       </div>
@@ -43,13 +42,6 @@ export default function PatientList({ patients, selectedId, onSelect, onPatientA
           onChange={(e) => setSearch(e.target.value)}
         />
       </div>
-
-      {showModal && (
-        <AddPatientModal 
-          onClose={() => setShowModal(false)} 
-          onSuccess={onPatientAdded} 
-        />
-      )}
       
       <div className="patient-items">
         {filteredPatients.map(p => (

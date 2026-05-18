@@ -4,12 +4,14 @@ import { useState, useEffect } from 'react'
 import PatientCard from '@/components/PatientCard'
 import PatientList from '@/components/PatientList'
 import NotificationCenter from '@/components/NotificationCenter'
+import AddPatientModal from '@/components/AddPatientModal'
 import { LayoutDashboard, Users, Calendar, Settings, LogOut, MessageCircle, Activity, TrendingUp } from 'lucide-react'
 
 export default function Home() {
   const [patient, setPatient] = useState<any>(null)
   const [patients, setPatients] = useState<any[]>([])
   const [loading, setLoading] = useState(true)
+  const [showAddModal, setShowAddModal] = useState(false)
   const [stats, setStats] = useState({
     totalPatients: 0,
     messagesToday: 12,
@@ -135,7 +137,7 @@ export default function Home() {
             patients={patients} 
             selectedId={patient?.id} 
             onSelect={handleSelectPatient} 
-            onPatientAdded={handlePatientAdded}
+            onAddClick={() => setShowAddModal(true)}
           />
         </nav>
 
@@ -187,6 +189,13 @@ export default function Home() {
 
         {patient && <PatientCard patient={patient as any} />}
       </div>
+
+      {showAddModal && (
+        <AddPatientModal 
+          onClose={() => setShowAddModal(false)} 
+          onSuccess={handlePatientAdded} 
+        />
+      )}
 
       <style jsx global>{`
         .app-layout {
