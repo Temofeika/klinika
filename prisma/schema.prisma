@@ -23,6 +23,8 @@ model Patient {
   updatedAt     DateTime @updatedAt
   lastMessageAt DateTime @default(now())
   
+  medicalRecord String?  // Stores JSON string of all clinical records
+  
   messages      Message[]
   messengerAccounts MessengerAccount[]
 }
