@@ -1,6 +1,20 @@
 import { NextResponse } from 'next/server'
 import { prisma } from '@/lib/db'
 
+function normalizePhone(phone: string): string {
+  let cleaned = phone.replace(/[^\d+]/g, '')
+  if (cleaned.startsWith('8') && cleaned.length === 11) {
+    cleaned = '+7' + cleaned.substring(1)
+  }
+  if (cleaned.startsWith('7') && cleaned.length === 11) {
+    cleaned = '+' + cleaned
+  }
+  if (!cleaned.startsWith('+') && cleaned.length > 0) {
+    cleaned = '+' + cleaned
+  }
+  return cleaned
+}
+
 // Helper to send messages to Telegram Bot API
 async function sendTelegramMessage(token: string, chatId: string, text: string, replyMarkup?: any) {
   try {
@@ -107,8 +121,7 @@ export async function POST(request: Request) {
     // 1. HANDLE SHARE CONTACT UPDATE
     if (messageObj.contact) {
       let rawPhone = messageObj.contact.phone_number
-      // Ensure phone starts with '+'
-      const phone = rawPhone.startsWith('+') ? rawPhone : `+${rawPhone}`
+      const phone = normalizePhone(rawPhone)
       console.log(`[TELEGRAM WEBHOOK] Received shared contact: ${phone} for user ID: ${telegramId}`)
 
       // Find the current temporary patient and messenger account
@@ -212,11 +225,16 @@ export async function POST(request: Request) {
     if (!account) {
       console.log(`[TELEGRAM] Auto-creating temporary patient for ID: ${telegramId}`)
       
+      const adminDoctor = await prisma.doctor.findFirst({
+        where: { OR: [{ username: 'admin' }, { position: 'Администратор' }] }
+      })
+
       const patient = await prisma.patient.create({
         data: {
           firstName: firstName,
           lastName: lastName,
-          phone: `+TG-${telegramId}` // temporary placeholder until shared
+          phone: `+TG-${telegramId}`, // temporary placeholder until shared
+          doctorId: adminDoctor?.id || null
         }
       })
 

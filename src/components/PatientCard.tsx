@@ -29,6 +29,13 @@ interface Patient {
   notes?: string | null
   medicalRecord?: string | null
   messages: Message[]
+  doctorId?: string | null
+  doctor?: {
+    id: string
+    firstName: string
+    lastName: string
+    position: string
+  } | null
 }
 
 const defaultMedical = {
@@ -77,6 +84,52 @@ export default function PatientCard({ patient: initialPatient, doctorId }: { pat
   const [activeTab, setActiveTab] = React.useState<'CHAT' | 'DOCS' | 'APPS' | 'MEDICAL' | 'BILLING' | 'LABS'>('CHAT')
   const [platform, setPlatform] = React.useState<'TELEGRAM' | 'MAX'>('TELEGRAM')
   const [sending, setSending] = React.useState(false)
+
+  // Doctor Assignment States
+  const [doctorsList, setDoctorsList] = React.useState<any[]>([])
+  const [assigningDoc, setAssigningDoc] = React.useState(false)
+
+  // Synchronize state when selected patient changes
+  React.useEffect(() => {
+    setPatient(initialPatient)
+  }, [initialPatient])
+
+  // Fetch doctors list for routing dropdown selection
+  React.useEffect(() => {
+    fetch('/api/doctors')
+      .then(res => res.json())
+      .then(data => {
+        if (Array.isArray(data)) setDoctorsList(data)
+      })
+      .catch(console.error)
+  }, [])
+
+  const handleAssignDoctor = async (targetDoctorId: string) => {
+    setAssigningDoc(true)
+    try {
+      const res = await fetch('/api/patient/assign', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          patientId: patient.id,
+          doctorId: targetDoctorId || null
+        })
+      })
+      const data = await res.json()
+      if (data.success) {
+        setPatient({
+          ...patient,
+          doctorId: data.patient.doctorId,
+          doctor: data.patient.doctor,
+          medicalRecord: data.patient.medicalRecord
+        })
+      }
+    } catch (err) {
+      console.error('Failed to assign doctor:', err)
+    } finally {
+      setAssigningDoc(false)
+    }
+  }
 
   // Templates Integration States
   const [showTemplates, setShowTemplates] = React.useState(false)
@@ -317,6 +370,24 @@ export default function PatientCard({ patient: initialPatient, doctorId }: { pat
           </div>
         </div>
         <div className="header-actions">
+          <div className="doctor-assignment-header">
+            <User size={14} className="doctor-select-icon" />
+            <label htmlFor="doctor-select">Лечащий врач:</label>
+            <select 
+              id="doctor-select"
+              value={patient.doctorId || ''} 
+              onChange={(e) => handleAssignDoctor(e.target.value)}
+              disabled={assigningDoc}
+              className="doctor-select-input"
+            >
+              <option value="">-- Не назначен --</option>
+              {doctorsList.map(doc => (
+                <option key={doc.id} value={doc.id}>
+                  {doc.lastName} {doc.firstName} ({doc.position})
+                </option>
+              ))}
+            </select>
+          </div>
           <button className="btn-primary"><Share2 size={18} /> Экспорт</button>
         </div>
       </div>
@@ -1297,6 +1368,45 @@ export default function PatientCard({ patient: initialPatient, doctorId }: { pat
           white-space: nowrap;
           overflow: hidden;
           text-overflow: ellipsis;
+        }
+
+        /* Doctor Assignment Select Styles */
+        .doctor-assignment-header {
+          display: flex;
+          align-items: center;
+          gap: 0.5rem;
+          margin-right: 1rem;
+          background: rgba(255, 255, 255, 0.85);
+          padding: 0.4rem 0.85rem;
+          border-radius: 0.85rem;
+          border: 1px solid var(--border);
+          box-shadow: 0 1px 2px rgba(0,0,0,0.02);
+        }
+
+        .doctor-select-icon {
+          color: var(--text-secondary);
+        }
+
+        .doctor-assignment-header label {
+          font-size: 0.8rem;
+          font-weight: 600;
+          color: var(--text-secondary);
+          white-space: nowrap;
+        }
+
+        .doctor-select-input {
+          border: none;
+          background: transparent;
+          outline: none;
+          font-size: 0.85rem;
+          font-weight: 700;
+          color: var(--text-main);
+          cursor: pointer;
+        }
+
+        .doctor-select-input:disabled {
+          opacity: 0.6;
+          cursor: not-allowed;
         }
       `}</style>
     </div>

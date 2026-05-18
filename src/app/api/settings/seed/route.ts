@@ -5,7 +5,19 @@ export async function GET() {
   try {
     console.log('Seeding doctors and assigning patients...')
 
-    // 1. Create or update Maria Smirnova
+    // 1. Create or update Administrator
+    const admin = await prisma.doctor.upsert({
+      where: { username: 'admin' },
+      update: {},
+      create: {
+        firstName: 'Главный',
+        lastName: 'Администратор',
+        position: 'Администратор',
+        username: 'admin'
+      }
+    })
+
+    // 2. Create or update Maria Smirnova
     const doc1 = await prisma.doctor.upsert({
       where: { username: 'smirnova' },
       update: {},

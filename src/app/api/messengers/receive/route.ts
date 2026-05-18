@@ -1,6 +1,20 @@
 import { NextResponse } from 'next/server'
 import { prisma } from '@/lib/db'
 
+function normalizePhone(phone: string): string {
+  let cleaned = phone.replace(/[^\d+]/g, '')
+  if (cleaned.startsWith('8') && cleaned.length === 11) {
+    cleaned = '+7' + cleaned.substring(1)
+  }
+  if (cleaned.startsWith('7') && cleaned.length === 11) {
+    cleaned = '+' + cleaned
+  }
+  if (!cleaned.startsWith('+') && cleaned.length > 0) {
+    cleaned = '+' + cleaned
+  }
+  return cleaned
+}
+
 export async function POST(request: Request) {
   try {
     const body = await request.json()
@@ -26,20 +40,28 @@ export async function POST(request: Request) {
       console.log(`[RECEIVE] Account not found for ${platform}:${externalId}. Resolving patient...`)
       let patient = null
 
-      if (phone) {
+      const normalizedPhone = phone ? normalizePhone(phone) : null
+
+      if (normalizedPhone) {
         patient = await prisma.patient.findUnique({
-          where: { phone }
+          where: { phone: normalizedPhone }
         })
       }
 
       if (!patient) {
+        // Query for admin doctor to assign as default
+        const adminDoctor = await prisma.doctor.findFirst({
+          where: { OR: [{ username: 'admin' }, { position: 'Администратор' }] }
+        })
+
         // Create new patient since they don't exist
         const [firstName, lastName] = (senderName || 'Telegram Patient').split(' ')
         patient = await prisma.patient.create({
           data: {
             firstName: firstName || 'Telegram',
             lastName: lastName || 'Patient',
-            phone: phone || `+TG-${externalId}`,
+            phone: normalizedPhone || `+TG-${externalId}`,
+            doctorId: adminDoctor?.id || null
           }
         })
         console.log(`[RECEIVE] Auto-created new patient: ${patient.id}`)

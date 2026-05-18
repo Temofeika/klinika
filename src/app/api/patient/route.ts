@@ -12,13 +12,31 @@ export async function GET(request: Request) {
         where: { id },
         include: {
           messages: true,
-          messengerAccounts: true
+          messengerAccounts: true,
+          doctor: true
         }
       })
       return NextResponse.json(patient)
     }
 
-    const whereClause = doctorId ? { doctorId } : {}
+    let whereClause: any = {}
+    if (doctorId) {
+      const doctor = await prisma.doctor.findUnique({
+        where: { id: doctorId }
+      })
+      if (doctor?.position === 'Администратор') {
+        // Administrator sees patients assigned to them OR completely unassigned patients
+        whereClause = {
+          OR: [
+            { doctorId },
+            { doctorId: null }
+          ]
+        }
+      } else {
+        // Standard doctors only see their explicitly assigned patients
+        whereClause = { doctorId }
+      }
+    }
 
     const patients = await prisma.patient.findMany({
       where: whereClause,
