@@ -179,12 +179,46 @@ export default function SettingsPage() {
           )}
 
           {activeSection === 'SECURITY' && (
-            <div className="settings-section glass-card">
-              <h4>Безопасность и доступ</h4>
-              <p>Управление ролями и двухфакторной аутентификацией для сотрудников клиники.</p>
-              <div className="security-option">
-                <span>Двухфакторная аутентификация (2FA)</span>
-                <div className="toggle-switch active"></div>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '2rem', width: '100%' }}>
+              <div className="settings-section glass-card">
+                <h4>Безопасность и доступ</h4>
+                <p>Управление ролями и двухфакторной аутентификацией для сотрудников клиники.</p>
+                <div className="security-option" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '1rem 0', borderBottom: '1px solid #f1f5f9' }}>
+                  <span>Двухфакторная аутентификация (2FA)</span>
+                  <div className="toggle-switch active" style={{ width: '40px', height: '20px', backgroundColor: '#10b981', borderRadius: '10px', position: 'relative', cursor: 'pointer' }}></div>
+                </div>
+              </div>
+
+              <div className="settings-section glass-card" style={{ borderColor: '#fecaca', backgroundColor: 'rgba(254, 242, 242, 0.4)' }}>
+                <h4 style={{ color: '#dc2626' }}>Очистка и сброс системы</h4>
+                <p style={{ color: '#7f1d1d', fontSize: '0.9rem', lineHeight: 1.5 }}>
+                  Внимание! Это действие безвозвратно удалит всех пациентов, всю историю переписок (сообщения Telegram/WhatsApp), прикрепленные документы, анализы, приемы и медицинские карты. 
+                  <br /><b>Учетные записи врачей и настройки системы (токены ботов) удалены не будут.</b>
+                </p>
+                
+                <button 
+                  className="btn-save" 
+                  onClick={async () => {
+                    if (confirm('Вы уверены, что хотите полностью очистить систему? Все пациенты, сообщения и документы будут безвозвратно удалены!')) {
+                      try {
+                        const res = await fetch('/api/settings/clear')
+                        const data = await res.json()
+                        if (res.ok && data.success) {
+                          alert(`Система успешно очищена!\nУдалено пациентов: ${data.stats.deletedPatientsCount}\nУдалено сообщений: ${data.stats.deletedMessagesCount}`)
+                          window.location.href = '/'
+                        } else {
+                          alert('Ошибка при очистке системы: ' + (data.error || 'Неизвестная ошибка'))
+                        }
+                      } catch (e) {
+                        console.error(e)
+                        alert('Сетевая ошибка при очистке данных.')
+                      }
+                    }
+                  }} 
+                  style={{ backgroundColor: '#dc2626', color: 'white', marginTop: '1rem', alignSelf: 'flex-start' }}
+                >
+                  Очистить базу данных
+                </button>
               </div>
             </div>
           )}
