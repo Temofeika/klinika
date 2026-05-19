@@ -207,16 +207,55 @@ export default function PatientCard({ patient: initialPatient, doctorId }: { pat
       const fileName = docMatch[1]
       const fileUrl = docMatch[2]
       return (
-        <div className="attachment-bubble doc-attachment">
-          <div className="attachment-header">
-            <span className="attachment-icon">📎</span>
-            <span className="attachment-name" title={fileName}>{fileName}</span>
+        <div 
+          className="attachment-bubble doc-attachment"
+          style={{ 
+            display: 'flex', 
+            flexDirection: 'column', 
+            gap: '0.4rem', 
+            marginTop: '0.25rem', 
+            padding: '0.5rem', 
+            background: 'rgba(0, 0, 0, 0.05)', 
+            borderRadius: '0.6rem', 
+            border: '1px solid rgba(0, 0, 0, 0.08)', 
+            width: '200px' 
+          }}
+        >
+          <div className="attachment-header" style={{ display: 'flex', alignItems: 'center', gap: '0.4rem' }}>
+            <span className="attachment-icon" style={{ fontSize: '1.1rem' }}>📎</span>
+            <span 
+              className="attachment-name" 
+              title={fileName}
+              style={{ 
+                fontWeight: 500, 
+                fontSize: '0.8rem', 
+                whiteSpace: 'nowrap', 
+                overflow: 'hidden', 
+                textOverflow: 'ellipsis', 
+                color: 'inherit' 
+              }}
+            >
+              {fileName}
+            </span>
           </div>
           <a 
             href={fileUrl} 
             target="_blank" 
             rel="noopener noreferrer" 
             className="attachment-link-btn"
+            style={{ 
+              display: 'block', 
+              textAlign: 'center', 
+              padding: '0.35rem 0.5rem', 
+              background: 'rgba(255, 255, 255, 0.65)', 
+              color: '#1e293b', 
+              borderRadius: '0.4rem', 
+              fontSize: '0.75rem', 
+              fontWeight: 600, 
+              textDecoration: 'none', 
+              transition: 'background 0.2s',
+              border: '1px solid rgba(0, 0, 0, 0.08)'
+            }}
           >
             Открыть документ
           </a>
@@ -229,16 +268,57 @@ export default function PatientCard({ patient: initialPatient, doctorId }: { pat
       const photoName = photoMatch[1]
       const photoUrl = photoMatch[2]
       return (
-        <div className="attachment-bubble photo-attachment">
-          <div className="photo-preview-wrapper">
+        <div 
+          className="attachment-bubble photo-attachment"
+          style={{ 
+            border: 'none', 
+            background: 'transparent', 
+            padding: 0, 
+            width: '130px', 
+            marginTop: '0.25rem' 
+          }}
+        >
+          <div 
+            className="photo-preview-wrapper"
+            style={{ 
+              borderRadius: '0.6rem', 
+              overflow: 'hidden', 
+              border: '1px solid rgba(0, 0, 0, 0.1)', 
+              boxShadow: '0 2px 4px rgba(0, 0, 0, 0.05)', 
+              cursor: 'pointer', 
+              maxHeight: '100px', 
+              position: 'relative',
+              width: '130px'
+            }}
+          >
             <img 
               src={photoUrl} 
               alt={photoName} 
               className="chat-photo-preview" 
+              style={{ 
+                width: '100%', 
+                height: '100px', 
+                objectFit: 'cover', 
+                display: 'block', 
+                transition: 'all 0.25s ease' 
+              }}
               onClick={() => setPreviewPhoto({ url: photoUrl, name: photoName })}
             />
           </div>
-          <span className="photo-caption">{photoName}</span>
+          <span 
+            className="photo-caption"
+            style={{ 
+              fontSize: '0.7rem', 
+              color: 'var(--text-secondary)', 
+              marginTop: '0.2rem', 
+              display: 'block', 
+              whiteSpace: 'nowrap', 
+              overflow: 'hidden', 
+              textOverflow: 'ellipsis' 
+            }}
+          >
+            {photoName}
+          </span>
         </div>
       )
     }
