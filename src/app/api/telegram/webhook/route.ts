@@ -236,7 +236,9 @@ export async function POST(request: Request) {
           firstName: firstName,
           lastName: lastName,
           phone: `+TG-${telegramId}`, // temporary placeholder until shared
-          doctorId: adminDoctor?.id || null
+          doctors: adminDoctor ? {
+            connect: { id: adminDoctor.id }
+          } : undefined
         }
       })
 

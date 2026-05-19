@@ -43,14 +43,18 @@ export async function POST(request: Request) {
       desc: `Перенаправлен к специалисту: ${doctorName}.`
     })
 
+    const action = body.action || 'connect' // 'connect' or 'disconnect'
+
     const updatedPatient = await prisma.patient.update({
       where: { id: patientId },
       data: {
-        doctorId: doctorId || null,
+        doctors: action === 'disconnect' 
+          ? { disconnect: { id: doctorId } }
+          : { connect: { id: doctorId } },
         medicalRecord: JSON.stringify(medical)
       },
       include: {
-        doctor: true
+        doctors: true
       }
     })
 

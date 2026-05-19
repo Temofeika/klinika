@@ -26,8 +26,7 @@ model Patient {
   
   medicalRecord String?  // Stores JSON string of all clinical records
   
-  doctor        Doctor?  @relation(fields: [doctorId], references: [id])
-  doctorId      String?
+  doctors       Doctor[]
 
   messages      Message[]
   messengerAccounts MessengerAccount[]

@@ -29,13 +29,12 @@ interface Patient {
   notes?: string | null
   medicalRecord?: string | null
   messages: Message[]
-  doctorId?: string | null
-  doctor?: {
+  doctors?: Array<{
     id: string
     firstName: string
     lastName: string
     position: string
-  } | null
+  }>
 }
 
 const defaultMedical = {
@@ -162,7 +161,7 @@ export default function PatientCard({ patient: initialPatient, doctorId }: { pat
       .catch(console.error)
   }, [])
 
-  const handleAssignDoctor = async (targetDoctorId: string) => {
+  const handleAssignDoctor = async (targetDoctorId: string, action: 'connect' | 'disconnect' = 'connect') => {
     setAssigningDoc(true)
     try {
       const res = await fetch('/api/patient/assign', {
@@ -170,15 +169,15 @@ export default function PatientCard({ patient: initialPatient, doctorId }: { pat
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           patientId: patient.id,
-          doctorId: targetDoctorId || null
+          doctorId: targetDoctorId,
+          action
         })
       })
       const data = await res.json()
       if (data.success) {
         setPatient({
           ...patient,
-          doctorId: data.patient.doctorId,
-          doctor: data.patient.doctor,
+          doctors: data.patient.doctors,
           medicalRecord: data.patient.medicalRecord
         })
       }
@@ -545,22 +544,80 @@ export default function PatientCard({ patient: initialPatient, doctorId }: { pat
           </div>
         </div>
         <div className="header-actions">
-          <div className="doctor-assignment-header">
-            <User size={14} className="doctor-select-icon" />
-            <label htmlFor="doctor-select">Лечащий врач:</label>
-            <select 
-              id="doctor-select"
-              value={patient.doctorId || ''} 
-              onChange={(e) => handleAssignDoctor(e.target.value)}
-              disabled={assigningDoc}
-              className="doctor-select-input"
-            >
-              <option value="">-- Не назначен --</option>
-              {doctorsList.map(doc => (
-                <option key={doc.id} value={doc.id}>
-                  {doc.lastName} {doc.firstName} ({doc.position})
-                </option>
+          <div className="doctors-assignment-container" style={{ display: 'flex', flexDirection: 'column', gap: '0.4rem', minWidth: '240px' }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '0.4rem', flexWrap: 'wrap' }}>
+              <span style={{ fontSize: '0.8rem', fontWeight: 700, color: 'var(--text-secondary)' }}>Лечащие врачи:</span>
+              
+              {(!patient.doctors || patient.doctors.length === 0) && (
+                <span style={{ fontSize: '0.8rem', color: '#94a3b8', fontStyle: 'italic' }}>Не назначены</span>
+              )}
+
+              {patient.doctors && patient.doctors.map(doc => (
+                <span 
+                  key={doc.id} 
+                  style={{ 
+                    display: 'inline-flex', 
+                    alignItems: 'center', 
+                    gap: '0.35rem', 
+                    padding: '0.2rem 0.5rem', 
+                    background: '#e0f2fe', 
+                    color: '#0369a1', 
+                    borderRadius: '0.5rem', 
+                    fontSize: '0.75rem', 
+                    fontWeight: 600,
+                    border: '1px solid #bae6fd'
+                  }}
+                >
+                  🩺 {doc.lastName} {doc.firstName[0]}.
+                  <button 
+                    onClick={() => handleAssignDoctor(doc.id, 'disconnect')} 
+                    disabled={assigningDoc}
+                    style={{ 
+                      background: 'none', 
+                      border: 'none', 
+                      color: '#0369a1', 
+                      cursor: 'pointer', 
+                      fontSize: '0.85rem', 
+                      padding: '0 0 0 0.15rem', 
+                      display: 'flex', 
+                      alignItems: 'center',
+                      fontWeight: 'bold'
+                    }}
+                    title="Удалить лечащего врача"
+                  >
+                    ✕
+                  </button>
+                </span>
               ))}
+            </div>
+
+            <select 
+              value="" 
+              onChange={(e) => {
+                if (e.target.value) {
+                  handleAssignDoctor(e.target.value, 'connect')
+                }
+              }}
+              disabled={assigningDoc}
+              style={{ 
+                padding: '0.3rem 0.6rem', 
+                borderRadius: '0.5rem', 
+                border: '1px solid var(--border)', 
+                fontSize: '0.75rem', 
+                outline: 'none',
+                maxWidth: '220px',
+                cursor: 'pointer',
+                background: 'white'
+              }}
+            >
+              <option value="">+ Назначить врача...</option>
+              {doctorsList
+                .filter(doc => !patient.doctors?.some(d => d.id === doc.id))
+                .map(doc => (
+                  <option key={doc.id} value={doc.id}>
+                    {doc.lastName} {doc.firstName} ({doc.position})
+                  </option>
+                ))}
             </select>
           </div>
           <button className="btn-primary"><Share2 size={18} /> Экспорт</button>

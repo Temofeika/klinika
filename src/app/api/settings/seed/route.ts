@@ -66,10 +66,23 @@ export async function GET() {
     })
 
     // 3. Assign all existing patients without a doctor to Doctor 1 (Maria Smirnova)
-    await prisma.patient.updateMany({
-      where: { doctorId: null },
-      data: { doctorId: doc1.id }
+    const unassignedPatients = await prisma.patient.findMany({
+      where: {
+        doctors: {
+          none: {}
+        }
+      }
     })
+    for (const p of unassignedPatients) {
+      await prisma.patient.update({
+        where: { id: p.id },
+        data: {
+          doctors: {
+            connect: { id: doc1.id }
+          }
+        }
+      })
+    }
 
     // 4. Create a demo patient assigned to Doctor 2 (Alexander Ivanov) if they do not exist
     const ivanovPatientPhone = '+79601112233'
@@ -87,7 +100,9 @@ export async function GET() {
           dateOfBirth: new Date('1985-06-15'),
           gender: 'Женский',
           notes: 'Пациент кардиологии. Жалобы на аритмию.',
-          doctorId: doc2.id,
+          doctors: {
+            connect: { id: doc2.id }
+          },
           medicalRecord: JSON.stringify({
             diagnoses: [
               { id: '1', name: 'Синусовая аритмия', date: '10.05.2026', status: 'ACTIVE' }

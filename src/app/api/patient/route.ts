@@ -13,7 +13,7 @@ export async function GET(request: Request) {
         include: {
           messages: true,
           messengerAccounts: true,
-          doctor: true
+          doctors: true
         }
       })
       return NextResponse.json(patient)
@@ -24,12 +24,16 @@ export async function GET(request: Request) {
       const doctor = await prisma.doctor.findUnique({
         where: { id: doctorId }
       })
-      if (doctor?.position === 'Администратор') {
-        // Administrator sees all patients in the database
+      if (doctor?.position === 'Администратор' || doctor?.position === 'Администратор системы') {
+        // Administrators see all patients in the database
         whereClause = {}
       } else {
-        // Standard doctors only see their explicitly assigned patients
-        whereClause = { doctorId }
+        // Standard doctors only see patients where they are one of the attending doctors
+        whereClause = {
+          doctors: {
+            some: { id: doctorId }
+          }
+        }
       }
     }
 
@@ -41,7 +45,14 @@ export async function GET(request: Request) {
         lastName: true,
         phone: true,
         lastMessageAt: true,
-        doctorId: true,
+        doctors: {
+          select: {
+            id: true,
+            firstName: true,
+            lastName: true,
+            position: true
+          }
+        },
         messages: {
           select: {
             isRead: true,
@@ -111,7 +122,7 @@ export async function PUT(request: Request) {
       include: {
         messages: true,
         messengerAccounts: true,
-        doctor: true
+        doctors: true
       }
     })
 

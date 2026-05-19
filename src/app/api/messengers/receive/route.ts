@@ -61,7 +61,9 @@ export async function POST(request: Request) {
             firstName: firstName || 'Telegram',
             lastName: lastName || 'Patient',
             phone: normalizedPhone || `+TG-${externalId}`,
-            doctorId: adminDoctor?.id || null
+            doctors: adminDoctor ? {
+              connect: { id: adminDoctor.id }
+            } : undefined
           }
         })
         console.log(`[RECEIVE] Auto-created new patient: ${patient.id}`)

@@ -41,7 +41,9 @@ export async function POST(request: Request) {
         lastName,
         phone: normalizedPhone,
         email,
-        doctorId: doctorId || null,
+        doctors: doctorId ? {
+          connect: { id: doctorId }
+        } : undefined,
         messengerAccounts: {
           create: [
             ...(telegramId ? [{ platform: 'TELEGRAM', externalId: telegramId }] : []),
