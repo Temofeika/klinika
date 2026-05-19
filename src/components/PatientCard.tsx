@@ -1496,35 +1496,37 @@ export default function PatientCard({ patient: initialPatient, doctorId }: { pat
           border: none;
           background: transparent;
           padding: 0;
-          width: 220px;
+          width: 130px;
         }
         
         .photo-preview-wrapper {
-          border-radius: 0.75rem;
+          border-radius: 0.6rem;
           overflow: hidden;
           border: 1px solid var(--border);
-          box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
+          box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05);
           cursor: pointer;
-          max-height: 180px;
+          max-height: 100px;
+          position: relative;
         }
         
         .chat-photo-preview {
           width: 100%;
           height: auto;
-          max-height: 180px;
+          max-height: 100px;
           object-fit: cover;
           display: block;
-          transition: transform 0.2s;
+          transition: all 0.25s ease;
         }
         
-        .chat-photo-preview:hover {
-          transform: scale(1.02);
+        .photo-preview-wrapper:hover .chat-photo-preview {
+          transform: scale(1.08);
+          filter: brightness(0.9);
         }
         
         .photo-caption {
-          font-size: 0.75rem;
+          font-size: 0.7rem;
           color: var(--text-secondary);
-          margin-top: 0.25rem;
+          margin-top: 0.2rem;
           display: block;
           white-space: nowrap;
           overflow: hidden;
