@@ -8,10 +8,31 @@ import TelegramAuth from '@/components/TelegramAuth'
 export default function SettingsPage() {
   const [activeSection, setActiveSection] = React.useState('TEMPLATES')
   
+  // Doctor/Auth check state
+  const [activeDoctor, setActiveDoctor] = React.useState<any>(null)
+  const [loadingDoctor, setLoadingDoctor] = React.useState(true)
+
   // Telegram settings state
   const [tgBotToken, setTgBotToken] = React.useState('')
   const [origin, setOrigin] = React.useState('https://[ваш-домен]')
   const [isSaving, setIsSaving] = React.useState(false)
+
+  React.useEffect(() => {
+    fetch('/api/doctors')
+      .then(res => res.json())
+      .then(data => {
+        if (Array.isArray(data) && data.length > 0) {
+          const savedDoctorId = typeof window !== 'undefined' ? localStorage.getItem('activeDoctorId') : null
+          const saved = savedDoctorId ? data.find((d: any) => d.id === savedDoctorId) : null
+          setActiveDoctor(saved || data[0])
+        }
+        setLoadingDoctor(false)
+      })
+      .catch(err => {
+        console.error(err)
+        setLoadingDoctor(false)
+      })
+  }, [])
 
   React.useEffect(() => {
     if (typeof window !== 'undefined') {
@@ -51,6 +72,36 @@ export default function SettingsPage() {
     } finally {
       setIsSaving(false)
     }
+  }
+
+  if (loadingDoctor) {
+    return (
+      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', height: '100vh', background: '#f8fafc', fontFamily: 'sans-serif' }}>
+        <div style={{ textAlign: 'center', color: '#64748b' }}>
+          <p style={{ fontSize: '1.1rem', fontWeight: 600 }}>Проверка прав доступа...</p>
+        </div>
+      </div>
+    )
+  }
+
+  if (activeDoctor?.position !== 'Администратор') {
+    return (
+      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', height: '100vh', background: '#f8fafc', fontFamily: 'sans-serif', padding: '1rem' }}>
+        <div style={{ maxWidth: '480px', padding: '2.5rem', borderRadius: '1.25rem', background: 'white', border: '1px solid #e2e8f0', boxShadow: '0 20px 25px -5px rgba(0, 0, 0, 0.05)', textAlign: 'center' }}>
+          <div style={{ background: '#fef2f2', color: '#ef4444', width: '3.5rem', height: '3.5rem', borderRadius: '50%', display: 'flex', alignItems: 'center', justifyContent: 'center', margin: '0 auto 1.5rem' }}>
+            <Shield size={32} />
+          </div>
+          <h3 style={{ fontSize: '1.35rem', fontWeight: 700, color: '#1e293b', marginBottom: '0.75rem' }}>Доступ ограничен</h3>
+          <p style={{ color: '#64748b', fontSize: '0.95rem', lineHeight: 1.6, marginBottom: '2rem' }}>
+            Раздел настроек системы доступен исключительно для <strong>Администратора системы</strong>. 
+            Ваша текущая роль: <strong>{activeDoctor ? activeDoctor.position : 'Врач'}</strong>.
+          </p>
+          <a href="/" style={{ display: 'inline-block', padding: '0.75rem 1.75rem', background: '#2563eb', color: 'white', borderRadius: '0.5rem', fontWeight: 600, fontSize: '0.9rem', textDecoration: 'none', transition: 'background 0.2s' }}>
+            Вернуться на дашборд
+          </a>
+        </div>
+      </div>
+    )
   }
 
   return (

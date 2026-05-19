@@ -33,7 +33,13 @@ export default function Home() {
         if (res.ok && Array.isArray(data)) {
           setDoctors(data)
           if (data.length > 0) {
-            setActiveDoctor(data[0]) // Default to first doctor
+            const savedDoctorId = typeof window !== 'undefined' ? localStorage.getItem('activeDoctorId') : null
+            const saved = savedDoctorId ? data.find((d: any) => d.id === savedDoctorId) : null
+            if (saved) {
+              setActiveDoctor(saved)
+            } else {
+              setActiveDoctor(data[0]) // Default to first doctor
+            }
           } else {
             setLoading(false)
           }
@@ -277,7 +283,9 @@ export default function Home() {
         
         <nav className="sidebar-nav">
           <a href="#" className="nav-item active"><LayoutDashboard size={20} /> Дашборд</a>
-          <a href="/settings" className="nav-item"><Settings size={20} /> Настройки</a>
+          {activeDoctor?.position === 'Администратор' && (
+            <a href="/settings" className="nav-item"><Settings size={20} /> Настройки</a>
+          )}
           <div className="sidebar-divider"></div>
           <div className="sidebar-section-label">Мои пациенты</div>
           <PatientList 
@@ -331,6 +339,9 @@ export default function Home() {
                       className={`doctor-menu-item ${activeDoctor?.id === doc.id ? 'active' : ''}`}
                       onClick={() => {
                         setActiveDoctor(doc)
+                        if (typeof window !== 'undefined') {
+                          localStorage.setItem('activeDoctorId', doc.id)
+                        }
                         setShowDocMenu(false)
                       }}
                     >

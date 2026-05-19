@@ -41,6 +41,18 @@ export async function GET() {
       }
     })
 
+    // 5. Create or update Vasily Petrov
+    const doc3 = await prisma.doctor.upsert({
+      where: { username: 'petrov' },
+      update: {},
+      create: {
+        firstName: 'Василий',
+        lastName: 'Петров',
+        position: 'Педиатр',
+        username: 'petrov'
+      }
+    })
+
     // 3. Assign all existing patients without a doctor to Doctor 1 (Maria Smirnova)
     await prisma.patient.updateMany({
       where: { doctorId: null },
