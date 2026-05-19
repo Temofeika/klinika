@@ -87,8 +87,17 @@ export default function Home() {
         const res = await fetch(`/api/patient?doctorId=${activeDoctor.id}`)
         const data = await res.json()
         
-        // Check if length or IDs changed to avoid layout recalculations
-        if (JSON.stringify(data.map((p: any) => p.id)) !== JSON.stringify(patients.map(p => p.id))) {
+        // Compare IDs and their incoming unread message counts to trigger re-renders dynamically
+        const currentSummary = patients.map(p => ({
+          id: p.id,
+          unreadCount: p.messages.filter((m: any) => m.isIncoming && !m.isRead).length
+        }))
+        const newSummary = data.map((p: any) => ({
+          id: p.id,
+          unreadCount: p.messages.filter((m: any) => m.isIncoming && !m.isRead).length
+        }))
+        
+        if (JSON.stringify(currentSummary) !== JSON.stringify(newSummary)) {
           setPatients(data)
           setStats(prev => ({ ...prev, totalPatients: data.length }))
         }
@@ -120,6 +129,41 @@ export default function Home() {
 
     const interval = setInterval(pollActivePatient, 3000)
     return () => clearInterval(interval)
+  }, [patient?.id, patient?.messages])
+
+  // 5. Automatically mark incoming messages as read in real-time when patient is active
+  useEffect(() => {
+    if (!patient?.id) return
+
+    const unreadIncoming = patient.messages.filter(m => m.isIncoming && !m.isRead)
+    if (unreadIncoming.length > 0) {
+      const markAsRead = async () => {
+        try {
+          await fetch('/api/patient/read', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ patientId: patient.id })
+          })
+
+          // Update local selected patient state immediately to reflect read status
+          setPatient(prev => {
+            if (!prev) return prev
+            return {
+              ...prev,
+              messages: prev.messages.map(m => m.isIncoming && !m.isRead ? { ...m, isRead: true } : m)
+            }
+          })
+
+          // Clear the unread badges in sidebar patient list instantly
+          setPatients(prev => prev.map(p => 
+            p.id === patient.id ? { ...p, messages: p.messages.map(m => m.isIncoming && !m.isRead ? { ...m, isRead: true } : m) } : p
+          ))
+        } catch (err) {
+          console.error('Failed to mark messages as read in real-time:', err)
+        }
+      }
+      markAsRead()
+    }
   }, [patient?.id, patient?.messages])
 
   const handleSelectPatient = async (id: string) => {
