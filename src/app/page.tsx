@@ -352,29 +352,6 @@ export default function Home() {
           </div>
         </header>
 
-        <section className="stats-summary">
-          <div className="stat-card glass-card">
-            <div className="stat-icon blue"><Users size={20} /></div>
-            <div className="stat-info">
-              <div className="stat-label">Мои пациенты</div>
-              <div className="stat-value">{stats.totalPatients}</div>
-            </div>
-          </div>
-          <div className="stat-card glass-card">
-            <div className="stat-icon green"><MessageCircle size={20} /></div>
-            <div className="stat-info">
-              <div className="stat-label">Сообщений сегодня</div>
-              <div className="stat-value">{stats.messagesToday}</div>
-            </div>
-          </div>
-          <div className="stat-card glass-card">
-            <div className="stat-icon purple"><TrendingUp size={20} /></div>
-            <div className="stat-info">
-              <div className="stat-label">Топ платформа</div>
-              <div className="stat-value">{stats.activeMessenger}</div>
-            </div>
-          </div>
-        </section>
 
         {loading ? (
           <div className="dashboard-loading">
