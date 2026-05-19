@@ -24,14 +24,28 @@ export async function POST(request: Request) {
 
     // Fetch active doctor details if provided
     const doctor = doctorId ? await prisma.doctor.findUnique({ where: { id: doctorId } }) : null
+    
+    const getDoctorEmoji = (pos: string) => {
+      const p = pos.toLowerCase()
+      if (p.includes('систем')) return '💻'
+      if (p.includes('администр')) return '📋'
+      return '🩺'
+    }
+
+    // displayContent will be stored in database CRM chat
     const displayContent = doctor 
-      ? `${doctor.firstName} ${doctor.lastName} (${doctor.position}): ${content}` 
+      ? `${getDoctorEmoji(doctor.position)} ${doctor.firstName} ${doctor.lastName} (${doctor.position}): ${content}` 
       : content
 
     // Attempt to send via Max API if platform is MAX
     if (platform === 'MAX') {
       console.log(`Sending MAX message to ${patientAccount.externalId}...`);
-      const maxRes = await sendMaxMessage(patientAccount.externalId, displayContent, process.env.MAX_API_KEY);
+      
+      const maxText = doctor
+        ? `*${getDoctorEmoji(doctor.position)} ${doctor.firstName} ${doctor.lastName} (${doctor.position}):*\n${content}`
+        : content
+
+      const maxRes = await sendMaxMessage(patientAccount.externalId, maxText, process.env.MAX_API_KEY);
 
       if (!maxRes.success) {
         console.error('Failed to send Max message:', maxRes.error);
@@ -53,13 +67,18 @@ export async function POST(request: Request) {
         }, { status: 400 });
       }
 
+      const tgText = doctor
+        ? `<b>${getDoctorEmoji(doctor.position)} ${doctor.firstName} ${doctor.lastName} (${doctor.position}):</b>\n${content}`
+        : content
+
       try {
         const tgRes = await fetch(`https://api.telegram.org/bot${token}/sendMessage`, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({
             chat_id: patientAccount.externalId,
-            text: displayContent
+            text: tgText,
+            parse_mode: 'HTML'
           })
         });
 
