@@ -84,7 +84,7 @@ export default function SettingsPage() {
     )
   }
 
-  if (activeDoctor?.position !== 'Администратор') {
+  if (activeDoctor?.position !== 'Администратор системы') {
     return (
       <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', height: '100vh', background: '#f8fafc', fontFamily: 'sans-serif', padding: '1rem' }}>
         <div style={{ maxWidth: '480px', padding: '2.5rem', borderRadius: '1.25rem', background: 'white', border: '1px solid #e2e8f0', boxShadow: '0 20px 25px -5px rgba(0, 0, 0, 0.05)', textAlign: 'center' }}>

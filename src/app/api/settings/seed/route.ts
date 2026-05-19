@@ -17,6 +17,18 @@ export async function GET() {
       }
     })
 
+    // 6. Create or update System Administrator
+    const sysadmin = await prisma.doctor.upsert({
+      where: { username: 'sysadmin' },
+      update: {},
+      create: {
+        firstName: 'Системный',
+        lastName: 'Администратор',
+        position: 'Администратор системы',
+        username: 'sysadmin'
+      }
+    })
+
     // 2. Create or update Maria Smirnova
     const doc1 = await prisma.doctor.upsert({
       where: { username: 'smirnova' },

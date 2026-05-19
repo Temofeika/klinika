@@ -283,7 +283,7 @@ export default function Home() {
         
         <nav className="sidebar-nav">
           <a href="#" className="nav-item active"><LayoutDashboard size={20} /> Дашборд</a>
-          {activeDoctor?.position === 'Администратор' && (
+          {activeDoctor?.position === 'Администратор системы' && (
             <a href="/settings" className="nav-item"><Settings size={20} /> Настройки</a>
           )}
           <div className="sidebar-divider"></div>
