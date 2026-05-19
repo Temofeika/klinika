@@ -97,6 +97,30 @@ export default function PatientCard({ patient: initialPatient, doctorId }: { pat
     return () => window.removeEventListener('keydown', handleKeyDown)
   }, [])
 
+  // Chat Scroll Ref and Effects
+  const messagesEndRef = React.useRef<HTMLDivElement | null>(null)
+
+  const scrollToBottom = (behavior: 'auto' | 'smooth' = 'smooth') => {
+    // Small timeout ensures the DOM has updated completely before scrolling
+    setTimeout(() => {
+      messagesEndRef.current?.scrollIntoView({ behavior, block: 'nearest' })
+    }, 50)
+  }
+
+  // Scroll to bottom instantly when switching patients or entering CHAT tab
+  React.useEffect(() => {
+    if (activeTab === 'CHAT') {
+      scrollToBottom('auto')
+    }
+  }, [patient.id, activeTab])
+
+  // Scroll to bottom smoothly when a new message is loaded/received
+  React.useEffect(() => {
+    if (activeTab === 'CHAT' && patient.messages.length > 0) {
+      scrollToBottom('smooth')
+    }
+  }, [patient.messages.length])
+
   // Doctor Assignment States
   const [doctorsList, setDoctorsList] = React.useState<any[]>([])
   const [assigningDoc, setAssigningDoc] = React.useState(false)
@@ -728,6 +752,7 @@ export default function PatientCard({ patient: initialPatient, doctorId }: { pat
                     </div>
                   </div>
                 ))}
+                <div ref={messagesEndRef} />
               </div>
               <div className="chat-input-area">
                 <div className="input-wrapper">
