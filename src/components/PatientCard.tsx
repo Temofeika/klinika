@@ -85,6 +85,18 @@ export default function PatientCard({ patient: initialPatient, doctorId }: { pat
   const [platform, setPlatform] = React.useState<'TELEGRAM' | 'MAX'>('TELEGRAM')
   const [sending, setSending] = React.useState(false)
 
+  // Photo Preview Modal States
+  const [previewPhoto, setPreviewPhoto] = React.useState<{ url: string; name: string } | null>(null)
+
+  // Listen to Escape key press to close modal
+  React.useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') setPreviewPhoto(null)
+    }
+    window.addEventListener('keydown', handleKeyDown)
+    return () => window.removeEventListener('keydown', handleKeyDown)
+  }, [])
+
   // Doctor Assignment States
   const [doctorsList, setDoctorsList] = React.useState<any[]>([])
   const [assigningDoc, setAssigningDoc] = React.useState(false)
@@ -223,7 +235,7 @@ export default function PatientCard({ patient: initialPatient, doctorId }: { pat
               src={photoUrl} 
               alt={photoName} 
               className="chat-photo-preview" 
-              onClick={() => window.open(photoUrl, '_blank')}
+              onClick={() => setPreviewPhoto({ url: photoUrl, name: photoName })}
             />
           </div>
           <span className="photo-caption">{photoName}</span>
@@ -786,6 +798,19 @@ export default function PatientCard({ patient: initialPatient, doctorId }: { pat
           )}
         </div>
       </div>
+
+      {/* Photo Preview Modal Overlay */}
+      {previewPhoto && (
+        <div className="photo-modal-overlay" onClick={() => setPreviewPhoto(null)}>
+          <button className="photo-modal-close" onClick={() => setPreviewPhoto(null)}>
+            &times;
+          </button>
+          <div className="photo-modal-content" onClick={(e) => e.stopPropagation()}>
+            <img src={previewPhoto.url} alt={previewPhoto.name} className="photo-modal-img" />
+            <div className="photo-modal-caption">{previewPhoto.name}</div>
+          </div>
+        </div>
+      )}
 
       <style jsx>{`
         .patient-container {
@@ -1654,6 +1679,92 @@ export default function PatientCard({ patient: initialPatient, doctorId }: { pat
           background: rgba(var(--primary-rgb), 0.05);
           border-color: var(--primary);
           color: var(--primary);
+        }
+
+        /* Premium Photo Preview Modal Styles */
+        .photo-modal-overlay {
+          position: fixed;
+          top: 0;
+          left: 0;
+          right: 0;
+          bottom: 0;
+          z-index: 99999;
+          background: rgba(15, 23, 42, 0.65);
+          backdrop-filter: blur(12px);
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          padding: 2rem;
+          animation: photoFadeIn 0.25s cubic-bezier(0.16, 1, 0.3, 1);
+        }
+
+        .photo-modal-close {
+          position: absolute;
+          top: 2rem;
+          right: 2rem;
+          border: none;
+          background: rgba(255, 255, 255, 0.1);
+          width: 3.25rem;
+          height: 3.25rem;
+          border-radius: 50%;
+          color: white;
+          font-size: 2rem;
+          line-height: 1;
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          cursor: pointer;
+          transition: all 0.25s cubic-bezier(0.16, 1, 0.3, 1);
+          z-index: 100000;
+        }
+
+        .photo-modal-close:hover {
+          background: rgba(255, 255, 255, 0.2);
+          transform: rotate(90deg) scale(1.1);
+        }
+
+        .photo-modal-content {
+          position: relative;
+          max-width: 90vw;
+          max-height: 85vh;
+          display: flex;
+          flex-direction: column;
+          align-items: center;
+          background: rgba(30, 41, 59, 0.5);
+          border: 1px solid rgba(255, 255, 255, 0.1);
+          border-radius: 1.25rem;
+          overflow: hidden;
+          box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.6);
+          animation: photoScaleIn 0.3s cubic-bezier(0.34, 1.56, 0.64, 1);
+        }
+
+        .photo-modal-img {
+          max-width: 100%;
+          max-height: 72vh;
+          object-fit: contain;
+          background: #0f172a;
+        }
+
+        .photo-modal-caption {
+          width: 100%;
+          padding: 1rem 1.5rem;
+          background: rgba(15, 23, 42, 0.8);
+          color: #f8fafc;
+          text-align: center;
+          font-size: 0.9rem;
+          font-weight: 600;
+          letter-spacing: 0.02em;
+          border-top: 1px solid rgba(255, 255, 255, 0.08);
+        }
+
+        @keyframes photoFadeIn {
+          from { opacity: 0; }
+          to { opacity: 1; }
+        }
+
+        @keyframes photoScaleIn {
+          from { transform: scale(0.95); opacity: 0; }
+          to { transform: scale(1); opacity: 1; }
         }
       `}</style>
     </div>
