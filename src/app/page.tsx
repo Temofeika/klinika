@@ -146,7 +146,7 @@ export default function Home() {
           })
 
           // Update local selected patient state immediately to reflect read status
-          setPatient(prev => {
+          setPatient((prev: any) => {
             if (!prev) return prev
             return {
               ...prev,
@@ -155,7 +155,7 @@ export default function Home() {
           })
 
           // Clear the unread badges in sidebar patient list instantly
-          setPatients(prev => prev.map(p => 
+          setPatients((prev: any[]) => prev.map((p: any) => 
             p.id === patient.id ? { ...p, messages: p.messages.map((m: any) => m.isIncoming && !m.isRead ? { ...m, isRead: true } : m) } : p
           ))
         } catch (err) {
