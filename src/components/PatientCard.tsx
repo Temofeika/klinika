@@ -569,56 +569,60 @@ export default function PatientCard({ patient: initialPatient, doctorId }: { pat
                   }}
                 >
                   🩺 {doc.lastName} {doc.firstName[0]}.
-                  <button 
-                    onClick={() => handleAssignDoctor(doc.id, 'disconnect')} 
-                    disabled={assigningDoc}
-                    style={{ 
-                      background: 'none', 
-                      border: 'none', 
-                      color: '#0369a1', 
-                      cursor: 'pointer', 
-                      fontSize: '0.85rem', 
-                      padding: '0 0 0 0.15rem', 
-                      display: 'flex', 
-                      alignItems: 'center',
-                      fontWeight: 'bold'
-                    }}
-                    title="Удалить лечащего врача"
-                  >
-                    ✕
-                  </button>
+                  {isAdministrator && (
+                    <button 
+                      onClick={() => handleAssignDoctor(doc.id, 'disconnect')} 
+                      disabled={assigningDoc}
+                      style={{ 
+                        background: 'none', 
+                        border: 'none', 
+                        color: '#0369a1', 
+                        cursor: 'pointer', 
+                        fontSize: '0.85rem', 
+                        padding: '0 0 0 0.15rem', 
+                        display: 'flex', 
+                        alignItems: 'center',
+                        fontWeight: 'bold'
+                      }}
+                      title="Удалить лечащего врача"
+                    >
+                      ✕
+                    </button>
+                  )}
                 </span>
               ))}
             </div>
 
-            <select 
-              value="" 
-              onChange={(e) => {
-                if (e.target.value) {
-                  handleAssignDoctor(e.target.value, 'connect')
-                }
-              }}
-              disabled={assigningDoc}
-              style={{ 
-                padding: '0.3rem 0.6rem', 
-                borderRadius: '0.5rem', 
-                border: '1px solid var(--border)', 
-                fontSize: '0.75rem', 
-                outline: 'none',
-                maxWidth: '220px',
-                cursor: 'pointer',
-                background: 'white'
-              }}
-            >
-              <option value="">+ Назначить врача...</option>
-              {doctorsList
-                .filter(doc => !patient.doctors?.some(d => d.id === doc.id))
-                .map(doc => (
-                  <option key={doc.id} value={doc.id}>
-                    {doc.lastName} {doc.firstName} ({doc.position})
-                  </option>
-                ))}
-            </select>
+            {isAdministrator && (
+              <select 
+                value="" 
+                onChange={(e) => {
+                  if (e.target.value) {
+                    handleAssignDoctor(e.target.value, 'connect')
+                  }
+                }}
+                disabled={assigningDoc}
+                style={{ 
+                  padding: '0.3rem 0.6rem', 
+                  borderRadius: '0.5rem', 
+                  border: '1px solid var(--border)', 
+                  fontSize: '0.75rem', 
+                  outline: 'none',
+                  maxWidth: '220px',
+                  cursor: 'pointer',
+                  background: 'white'
+                }}
+              >
+                <option value="">+ Назначить врача...</option>
+                {doctorsList
+                  .filter(doc => !patient.doctors?.some(d => d.id === doc.id))
+                  .map(doc => (
+                    <option key={doc.id} value={doc.id}>
+                      {doc.lastName} {doc.firstName} ({doc.position})
+                    </option>
+                  ))}
+              </select>
+            )}
           </div>
           <button className="btn-primary"><Share2 size={18} /> Экспорт</button>
         </div>
