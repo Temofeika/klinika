@@ -2,7 +2,7 @@ import type { Metadata } from "next";
 import "./globals.css";
 
 export const metadata: Metadata = {
-  title: "Klinika - Система управления пациентами",
+  title: "PlanetaMed - Система управления пациентами",
   description: "Интегрированная система управления клиникой с поддержкой мессенджеров",
 };
 

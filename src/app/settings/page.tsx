@@ -57,8 +57,8 @@ export default function SettingsPage() {
     <main className="app-layout">
       <aside className="sidebar glass-card">
         <div className="logo">
-          <div className="logo-icon">K</div>
-          <span className="logo-text">Klinika</span>
+          <div className="logo-icon">P</div>
+          <span className="logo-text">PlanetaMed</span>
         </div>
         
         <nav className="sidebar-nav">
