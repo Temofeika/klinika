@@ -135,7 +135,7 @@ export default function Home() {
   useEffect(() => {
     if (!patient?.id) return
 
-    const unreadIncoming = patient.messages.filter(m => m.isIncoming && !m.isRead)
+    const unreadIncoming = patient.messages.filter((m: any) => m.isIncoming && !m.isRead)
     if (unreadIncoming.length > 0) {
       const markAsRead = async () => {
         try {
@@ -150,13 +150,13 @@ export default function Home() {
             if (!prev) return prev
             return {
               ...prev,
-              messages: prev.messages.map(m => m.isIncoming && !m.isRead ? { ...m, isRead: true } : m)
+              messages: prev.messages.map((m: any) => m.isIncoming && !m.isRead ? { ...m, isRead: true } : m)
             }
           })
 
           // Clear the unread badges in sidebar patient list instantly
           setPatients(prev => prev.map(p => 
-            p.id === patient.id ? { ...p, messages: p.messages.map(m => m.isIncoming && !m.isRead ? { ...m, isRead: true } : m) } : p
+            p.id === patient.id ? { ...p, messages: p.messages.map((m: any) => m.isIncoming && !m.isRead ? { ...m, isRead: true } : m) } : p
           ))
         } catch (err) {
           console.error('Failed to mark messages as read in real-time:', err)
