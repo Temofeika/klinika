@@ -250,6 +250,31 @@ export async function POST(request: Request) {
       })
     }
 
+    // If the patient hasn't shared their contact yet (phone starts with '+TG-'), ignore regular messages and prompt contact sharing
+    if (account.patient.phone.startsWith('+TG-') && content.trim() !== '/start') {
+      console.log(`[TELEGRAM] User has not shared their phone yet. Blocking regular message.`)
+      if (token) {
+        await sendTelegramMessage(
+          token,
+          telegramId,
+          `⚠️ Пожалуйста, подтвердите ваш номер телефона, нажав кнопку «📱 Поделиться номером» ниже. Без этого мы не сможем связать ваш чат с медицинской картой и ответить вам.`,
+          {
+            keyboard: [
+              [
+                {
+                  text: '📱 Поделиться номером',
+                  request_contact: true
+                }
+              ]
+            ],
+            resize_keyboard: true,
+            one_time_keyboard: true
+          }
+        )
+      }
+      return NextResponse.json({ success: false, status: 'phone_required' })
+    }
+
     // If message is "/start", automatically prompt the user to share their phone number
     if (content.trim() === '/start') {
       console.log(`[TELEGRAM] User started chat. Sending Request Contact button...`)
