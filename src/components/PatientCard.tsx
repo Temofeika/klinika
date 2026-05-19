@@ -521,8 +521,18 @@ export default function PatientCard({ patient: initialPatient, doctorId }: { pat
   return (
     <div className="patient-container">
       <div className="glass-card patient-header">
-        <div className="patient-avatar">
-          <User size={40} />
+        <div className="patient-avatar-container">
+          <div className="patient-avatar">
+            <User size={40} />
+          </div>
+          {isAdministrator && (
+            <button 
+              className="btn-edit-profile-trigger-avatar" 
+              onClick={() => setIsEditing(true)}
+            >
+              Редактировать профиль
+            </button>
+          )}
         </div>
         <div className="patient-info">
           <h1>{patient.lastName} {patient.firstName}</h1>
@@ -636,9 +646,6 @@ export default function PatientCard({ patient: initialPatient, doctorId }: { pat
           </div>
         ) : (
           <div className="glass-card patient-details">
-            <h3><FileText size={18} /> Заметки</h3>
-            <p className="patient-notes-para">{patient.notes || 'Заметок нет'}</p>
-            
             <div className="messenger-status">
               <h3>Подключенные мессенджеры</h3>
               <div className="status-item">
@@ -650,15 +657,6 @@ export default function PatientCard({ patient: initialPatient, doctorId }: { pat
                 <span className="status-online">Активен</span>
               </div>
             </div>
-
-            {isAdministrator && (
-              <button 
-                className="btn-edit-profile-trigger" 
-                onClick={() => setIsEditing(true)}
-              >
-                Редактировать профиль
-              </button>
-            )}
           </div>
         )}
 
@@ -997,8 +995,34 @@ export default function PatientCard({ patient: initialPatient, doctorId }: { pat
           margin-bottom: 2rem;
         }
 
+        .patient-avatar-container {
+          display: flex;
+          flex-direction: column;
+          align-items: center;
+          gap: 0.5rem;
+        }
+
+        .btn-edit-profile-trigger-avatar {
+          padding: 0.35rem 0.75rem;
+          background: rgba(0, 0, 0, 0.04);
+          border: 1px dashed var(--border);
+          border-radius: 0.5rem;
+          color: var(--text-main);
+          font-weight: 600;
+          font-size: 0.75rem;
+          cursor: pointer;
+          transition: all 0.2s;
+          white-space: nowrap;
+        }
+
+        .btn-edit-profile-trigger-avatar:hover {
+          background: rgba(var(--primary-rgb), 0.05);
+          border-color: var(--primary);
+          color: var(--primary);
+        }
+
         .messenger-status h3 {
-          margin-top: 1rem;
+          margin-top: 0;
         }
 
         .status-item {
