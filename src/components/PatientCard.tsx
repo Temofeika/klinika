@@ -568,98 +568,6 @@ export default function PatientCard({ patient: initialPatient, doctorId }: { pat
       </div>
 
       <div className="patient-content">
-        {isEditing ? (
-          <div className="glass-card patient-details editing-sidebar">
-            <h3 className="editing-title">Редактирование профиля</h3>
-            <div className="edit-form-fields">
-              <div className="edit-field">
-                <label>Фамилия</label>
-                <input 
-                  type="text" 
-                  value={editForm.lastName} 
-                  onChange={(e) => setEditForm({ ...editForm, lastName: e.target.value })} 
-                  className="edit-input"
-                />
-              </div>
-              <div className="edit-field">
-                <label>Имя</label>
-                <input 
-                  type="text" 
-                  value={editForm.firstName} 
-                  onChange={(e) => setEditForm({ ...editForm, firstName: e.target.value })} 
-                  className="edit-input"
-                />
-              </div>
-              <div className="edit-field">
-                <label>Телефон</label>
-                <input 
-                  type="text" 
-                  value={editForm.phone} 
-                  onChange={(e) => setEditForm({ ...editForm, phone: e.target.value })} 
-                  className="edit-input"
-                />
-              </div>
-              <div className="edit-field">
-                <label>Email</label>
-                <input 
-                  type="email" 
-                  value={editForm.email} 
-                  onChange={(e) => setEditForm({ ...editForm, email: e.target.value })} 
-                  className="edit-input"
-                />
-              </div>
-              <div className="edit-field">
-                <label>Дата рождения</label>
-                <input 
-                  type="date" 
-                  value={editForm.dateOfBirth} 
-                  onChange={(e) => setEditForm({ ...editForm, dateOfBirth: e.target.value })} 
-                  className="edit-input"
-                />
-              </div>
-              <div className="edit-field">
-                <label>Пол</label>
-                <select 
-                  value={editForm.gender} 
-                  onChange={(e) => setEditForm({ ...editForm, gender: e.target.value })} 
-                  className="edit-select"
-                >
-                  <option value="">Не указан</option>
-                  <option value="MALE">Мужской</option>
-                  <option value="FEMALE">Женский</option>
-                </select>
-              </div>
-              <div className="edit-field">
-                <label>Заметки / Описание</label>
-                <textarea 
-                  value={editForm.notes} 
-                  onChange={(e) => setEditForm({ ...editForm, notes: e.target.value })} 
-                  className="edit-textarea"
-                  rows={4}
-                />
-              </div>
-            </div>
-            <div className="edit-actions">
-              <button className="btn-save-profile" onClick={handleSaveProfile}>Сохранить</button>
-              <button className="btn-cancel-profile" onClick={() => setIsEditing(false)}>Отмена</button>
-            </div>
-          </div>
-        ) : (
-          <div className="glass-card patient-details">
-            <div className="messenger-status">
-              <h3>Подключенные мессенджеры</h3>
-              <div className="status-item">
-                <span className="messenger-badge badge-telegram">Telegram</span>
-                <span className="status-online">Активен</span>
-              </div>
-              <div className="status-item">
-                <span className="messenger-badge badge-max">Max</span>
-                <span className="status-online">Активен</span>
-              </div>
-            </div>
-          </div>
-        )}
-
         <div className="glass-card main-activity-container">
           <div className="tabs-navigation">
             <button 
@@ -915,6 +823,90 @@ export default function PatientCard({ patient: initialPatient, doctorId }: { pat
         </div>
       )}
 
+      {/* Edit Profile Modal Dialog Overlay */}
+      {isEditing && (
+        <div className="modal-overlay" onClick={() => setIsEditing(false)}>
+          <div className="glass-card edit-modal-content" onClick={(e) => e.stopPropagation()}>
+            <div className="modal-header">
+              <h3>Редактирование профиля</h3>
+              <button className="modal-close-btn" onClick={() => setIsEditing(false)}>&times;</button>
+            </div>
+            <div className="edit-form-fields-modal">
+              <div className="edit-field-modal">
+                <label>Фамилия</label>
+                <input 
+                  type="text" 
+                  value={editForm.lastName} 
+                  onChange={(e) => setEditForm({ ...editForm, lastName: e.target.value })} 
+                  className="edit-input-modal"
+                />
+              </div>
+              <div className="edit-field-modal">
+                <label>Имя</label>
+                <input 
+                  type="text" 
+                  value={editForm.firstName} 
+                  onChange={(e) => setEditForm({ ...editForm, firstName: e.target.value })} 
+                  className="edit-input-modal"
+                />
+              </div>
+              <div className="edit-field-modal">
+                <label>Телефон</label>
+                <input 
+                  type="text" 
+                  value={editForm.phone} 
+                  onChange={(e) => setEditForm({ ...editForm, phone: e.target.value })} 
+                  className="edit-input-modal"
+                />
+              </div>
+              <div className="edit-field-modal">
+                <label>Email</label>
+                <input 
+                  type="email" 
+                  value={editForm.email} 
+                  onChange={(e) => setEditForm({ ...editForm, email: e.target.value })} 
+                  className="edit-input-modal"
+                />
+              </div>
+              <div className="edit-field-modal">
+                <label>Дата рождения</label>
+                <input 
+                  type="date" 
+                  value={editForm.dateOfBirth} 
+                  onChange={(e) => setEditForm({ ...editForm, dateOfBirth: e.target.value })} 
+                  className="edit-input-modal"
+                />
+              </div>
+              <div className="edit-field-modal">
+                <label>Пол</label>
+                <select 
+                  value={editForm.gender} 
+                  onChange={(e) => setEditForm({ ...editForm, gender: e.target.value })} 
+                  className="edit-select-modal"
+                >
+                  <option value="">Не указан</option>
+                  <option value="MALE">Мужской</option>
+                  <option value="FEMALE">Женский</option>
+                </select>
+              </div>
+              <div className="edit-field-modal">
+                <label>Заметки / Описание</label>
+                <textarea 
+                  value={editForm.notes} 
+                  onChange={(e) => setEditForm({ ...editForm, notes: e.target.value })} 
+                  className="edit-textarea-modal"
+                  rows={3}
+                />
+              </div>
+            </div>
+            <div className="edit-actions-modal">
+              <button className="btn-save-profile-modal" onClick={handleSaveProfile}>Сохранить</button>
+              <button className="btn-cancel-profile-modal" onClick={() => setIsEditing(false)}>Отмена</button>
+            </div>
+          </div>
+        </div>
+      )}
+
       <style jsx>{`
         .patient-container {
           max-width: 1200px;
@@ -969,9 +961,8 @@ export default function PatientCard({ patient: initialPatient, doctorId }: { pat
         }
 
         .patient-content {
-          display: grid;
-          grid-template-columns: 350px 1fr;
-          gap: 1.5rem;
+          display: block;
+          width: 100%;
         }
 
         .patient-details {
@@ -1894,6 +1885,161 @@ export default function PatientCard({ patient: initialPatient, doctorId }: { pat
         }
 
         @keyframes photoScaleIn {
+          from { transform: scale(0.95); opacity: 0; }
+          to { transform: scale(1); opacity: 1; }
+        }
+
+        /* Glassmorphic Edit Profile Modal Styles */
+        .modal-overlay {
+          position: fixed;
+          top: 0;
+          left: 0;
+          right: 0;
+          bottom: 0;
+          background: rgba(15, 23, 42, 0.45);
+          backdrop-filter: blur(10px);
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          z-index: 9999;
+          padding: 1.5rem;
+          animation: modalFadeIn 0.2s ease-out;
+        }
+
+        .edit-modal-content {
+          width: 100%;
+          max-width: 520px;
+          padding: 2rem;
+          background: rgba(255, 255, 255, 0.85);
+          border: 1px solid rgba(255, 255, 255, 0.4);
+          box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.25);
+          border-radius: 1.25rem;
+          animation: modalScaleIn 0.25s cubic-bezier(0.34, 1.56, 0.64, 1);
+        }
+
+        .modal-header {
+          display: flex;
+          align-items: center;
+          justify-content: space-between;
+          margin-bottom: 1.5rem;
+          border-bottom: 1px solid var(--border);
+          padding-bottom: 0.75rem;
+        }
+
+        .modal-header h3 {
+          font-size: 1.25rem;
+          font-weight: 700;
+          color: var(--text-main);
+          margin: 0;
+        }
+
+        .modal-close-btn {
+          background: transparent;
+          border: none;
+          font-size: 1.75rem;
+          line-height: 1;
+          cursor: pointer;
+          color: var(--text-secondary);
+          transition: all 0.2s;
+        }
+
+        .modal-close-btn:hover {
+          transform: rotate(90deg) scale(1.1);
+          color: var(--text-main);
+        }
+
+        .edit-form-fields-modal {
+          display: flex;
+          flex-direction: column;
+          gap: 1rem;
+          max-height: 60vh;
+          overflow-y: auto;
+          padding-right: 0.5rem;
+          margin-bottom: 1.5rem;
+        }
+
+        .edit-field-modal {
+          display: flex;
+          flex-direction: column;
+          gap: 0.35rem;
+        }
+
+        .edit-field-modal label {
+          font-size: 0.8rem;
+          font-weight: 600;
+          color: var(--text-secondary);
+          text-transform: uppercase;
+          letter-spacing: 0.05em;
+        }
+
+        .edit-input-modal,
+        .edit-select-modal,
+        .edit-textarea-modal {
+          padding: 0.65rem 0.85rem;
+          background: rgba(255, 255, 255, 0.7);
+          border: 1px solid var(--border);
+          border-radius: 0.5rem;
+          font-size: 0.9rem;
+          color: var(--text-main);
+          outline: none;
+          transition: all 0.2s;
+        }
+
+        .edit-input-modal:focus,
+        .edit-select-modal:focus,
+        .edit-textarea-modal:focus {
+          border-color: var(--primary);
+          background: white;
+          box-shadow: 0 0 0 3px rgba(var(--primary-rgb), 0.1);
+        }
+
+        .edit-actions-modal {
+          display: flex;
+          justify-content: flex-end;
+          gap: 0.75rem;
+          border-top: 1px solid var(--border);
+          padding-top: 1rem;
+        }
+
+        .btn-save-profile-modal {
+          padding: 0.6rem 1.25rem;
+          background: var(--primary);
+          color: white;
+          border: none;
+          border-radius: 0.5rem;
+          font-weight: 600;
+          font-size: 0.85rem;
+          cursor: pointer;
+          transition: all 0.2s;
+        }
+
+        .btn-save-profile-modal:hover {
+          background: var(--primary-hover);
+          transform: translateY(-1px);
+        }
+
+        .btn-cancel-profile-modal {
+          padding: 0.6rem 1.25rem;
+          background: rgba(0, 0, 0, 0.05);
+          color: var(--text-main);
+          border: none;
+          border-radius: 0.5rem;
+          font-weight: 600;
+          font-size: 0.85rem;
+          cursor: pointer;
+          transition: all 0.2s;
+        }
+
+        .btn-cancel-profile-modal:hover {
+          background: rgba(0, 0, 0, 0.1);
+        }
+
+        @keyframes modalFadeIn {
+          from { opacity: 0; }
+          to { opacity: 1; }
+        }
+
+        @keyframes modalScaleIn {
           from { transform: scale(0.95); opacity: 0; }
           to { transform: scale(1); opacity: 1; }
         }
