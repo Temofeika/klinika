@@ -216,7 +216,7 @@ export default function DischargePage({ params }: PageProps) {
   <table class="header-table">
     <tr>
       <td style="width: 65%;">
-        <div class="stamp-bold">МЕДИЦИНСКАЯ КЛИНИКА «ТЕМОФЕИКА»</div>
+        <div class="stamp-bold">МЕДИЦИНСКАЯ КЛИНИКА «PlanetaMed»</div>
         <div>Лицензия № ЛО-77-01-012345 от 12.04.2024</div>
         <div>Адрес: г. Москва, ул. Клиническая, д. 15 | Тел: +7 (495) 123-45-67</div>
       </td>
@@ -310,7 +310,7 @@ export default function DischargePage({ params }: PageProps) {
 
   <!-- Footer -->
   <div class="footer-stamp">
-    <p>Данная выписка является официальным медицинским документом клиники «Темофеика».</p>
+    <p>Данная выписка является официальным медицинским документом клиники «PlanetaMed».</p>
     <p>Документ сформирован в электронной медицинской системе клиники.</p>
   </div>
 </body>
@@ -468,7 +468,7 @@ export default function DischargePage({ params }: PageProps) {
         <div className="navbar-content">
           <div className="navbar-logo">
             <span className="logo-icon">🏥</span>
-            <span className="logo-text">Клиника «Темофеика»</span>
+            <span className="logo-text">PlanetaMed</span>
           </div>
           <div className="navbar-actions">
             <button className="btn-doc" onClick={handleDownloadDoc}>
@@ -543,7 +543,7 @@ export default function DischargePage({ params }: PageProps) {
           {/* Medical Clinical Header */}
           <div className="clinical-header">
             <div className="clinic-stamp">
-              <p className="stamp-bold">МЕДИЦИНСКАЯ КЛИНИКА «ТЕМОФЕИКА»</p>
+              <p className="stamp-bold">МЕДИЦИНСКАЯ КЛИНИКА «PlanetaMed»</p>
               <p className="stamp-sub">Лицензия № ЛО-77-01-012345 от 12.04.2024</p>
               <p className="stamp-sub">Адрес: г. Москва, ул. Клиническая, д. 15 | Тел: +7 (495) 123-45-67</p>
             </div>
@@ -656,7 +656,7 @@ export default function DischargePage({ params }: PageProps) {
 
           {/* Footer warning */}
           <div className="document-footer-stamp">
-            <p>Данная выписка является официальным медицинским документом клиники «Темофеика».</p>
+            <p>Данная выписка является официальным медицинским документом клиники «PlanetaMed».</p>
             <p>Документ сформирован в электронной медицинской системе клиники.</p>
           </div>
 
