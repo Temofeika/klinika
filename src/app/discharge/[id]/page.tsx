@@ -1,7 +1,7 @@
 'use client'
 
 import React, { useEffect, useState, use } from 'react'
-import { FileText, Printer, ShieldAlert, ArrowLeft, Calendar, User, Phone, CheckCircle, Mail } from 'lucide-react'
+import { FileText, Printer, ShieldAlert, ArrowLeft, Calendar, User, Phone, CheckCircle, Mail, FileDown, Download, HelpCircle, X } from 'lucide-react'
 import { format } from 'date-fns'
 import { ru } from 'date-fns/locale'
 
@@ -15,6 +15,7 @@ export default function DischargePage({ params }: PageProps) {
   const [patient, setPatient] = useState<any>(null)
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
+  const [showPrintHint, setShowPrintHint] = useState(false)
 
   useEffect(() => {
     const fetchPatientData = async () => {
@@ -38,6 +39,297 @@ export default function DischargePage({ params }: PageProps) {
 
   const handlePrint = () => {
     window.print()
+  }
+
+  const handleDownloadDoc = () => {
+    if (!patient || !discharge) return
+
+    const fileName = `Выписка_${patient.lastName || ''}_${patient.firstName || ''}.doc`
+    
+    // Construct HTML template for Word
+    const htmlContent = `
+<html xmlns:o="urn:schemas-microsoft-com:office:office" xmlns:w="urn:schemas-microsoft-com:office:word" xmlns="http://www.w3.org/TR/REC-html40">
+<head>
+  <meta charset="utf-8">
+  <title>Выписка из медицинской карты</title>
+  <!--[if gte mso 9]>
+  <xml>
+    <w:WordDocument>
+      <w:View>Print</w:View>
+      <w:Zoom>100</w:Zoom>
+      <w:DoNotOptimizeForBrowser/>
+    </w:WordDocument>
+  </xml>
+  <![endif]-->
+  <style>
+    body {
+      font-family: "Arial", "Helvetica", sans-serif;
+      font-size: 11pt;
+      line-height: 1.5;
+      color: #0f172a;
+      margin: 1.5in 1in 1in 1in;
+    }
+    .header-table {
+      width: 100%;
+      border-collapse: collapse;
+      margin-bottom: 20px;
+    }
+    .header-table td {
+      vertical-align: top;
+      font-size: 9pt;
+      color: #475569;
+    }
+    .stamp-bold {
+      font-weight: bold;
+      font-size: 10pt;
+      color: #0f172a;
+    }
+    .divider-double {
+      border: none;
+      border-top: 3px double #cbd5e1;
+      margin: 20px 0;
+    }
+    .title-block {
+      text-align: center;
+      margin-bottom: 30px;
+    }
+    .title-block h2 {
+      font-size: 16pt;
+      font-weight: bold;
+      margin: 0 0 5px 0;
+      color: #0f172a;
+      letter-spacing: 1px;
+    }
+    .title-block h4 {
+      font-size: 10pt;
+      font-weight: normal;
+      margin: 0 0 10px 0;
+      color: #475569;
+    }
+    .doc-date {
+      font-size: 9pt;
+      font-style: italic;
+      color: #475569;
+    }
+    .section-title {
+      font-size: 11pt;
+      font-weight: bold;
+      color: #2563eb;
+      border-bottom: 1.5px solid #cbd5e1;
+      padding-bottom: 5px;
+      margin-top: 25px;
+      margin-bottom: 15px;
+      text-transform: uppercase;
+    }
+    .info-table {
+      width: 100%;
+      border-collapse: collapse;
+      margin-bottom: 20px;
+    }
+    .info-table td {
+      padding: 6px 0;
+      font-size: 10pt;
+      border-bottom: 1px dashed #e2e8f0;
+    }
+    .label-cell {
+      width: 30%;
+      color: #475569;
+      font-weight: 500;
+    }
+    .value-cell {
+      color: #0f172a;
+    }
+    .value-cell.bold {
+      font-weight: bold;
+      font-size: 11pt;
+    }
+    .highlight-text {
+      color: #1d4ed8;
+      font-weight: bold;
+    }
+    .content-box {
+      background-color: #f8fafc;
+      border-left: 4px solid #cbd5e1;
+      padding: 12px;
+      margin-bottom: 15px;
+      font-size: 10pt;
+    }
+    .diagnosis-box {
+      background-color: #fffbeb;
+      border-left: 4px solid #f59e0b;
+      color: #92400e;
+      font-weight: bold;
+    }
+    .recommendations-box {
+      background-color: #f0fdf4;
+      border-left: 4px solid #10b981;
+      color: #065f46;
+      font-weight: bold;
+    }
+    .pre-wrap {
+      white-space: pre-wrap;
+    }
+    .signature-table {
+      width: 100%;
+      border-collapse: collapse;
+      margin-top: 40px;
+      margin-bottom: 30px;
+    }
+    .signature-table td {
+      vertical-align: bottom;
+    }
+    .signature-title {
+      font-weight: bold;
+      font-size: 10pt;
+      color: #475569;
+      margin-bottom: 5px;
+    }
+    .signature-name {
+      font-weight: bold;
+      font-size: 11pt;
+      color: #0f172a;
+    }
+    .seal-space {
+      width: 80px;
+      height: 80px;
+      border: 2px dashed #cbd5e1;
+      color: #cbd5e1;
+      border-radius: 50%;
+      font-size: 8pt;
+      font-weight: bold;
+      text-align: center;
+      line-height: 80px;
+      float: right;
+    }
+    .footer-stamp {
+      border-top: 1px solid #cbd5e1;
+      padding-top: 10px;
+      text-align: center;
+      color: #94a3b8;
+      font-size: 8pt;
+      margin-top: 40px;
+    }
+  </style>
+</head>
+<body>
+  <!-- Header Table -->
+  <table class="header-table">
+    <tr>
+      <td style="width: 65%;">
+        <div class="stamp-bold">МЕДИЦИНСКАЯ КЛИНИКА «ТЕМОФЕИКА»</div>
+        <div>Лицензия № ЛО-77-01-012345 от 12.04.2024</div>
+        <div>Адрес: г. Москва, ул. Клиническая, д. 15 | Тел: +7 (495) 123-45-67</div>
+      </td>
+      <td style="width: 35%; text-align: right;">
+        <div>Медицинская документация</div>
+        <div class="stamp-bold">Форма № 027/у</div>
+        <div>Утверждена Минздравом РФ</div>
+      </td>
+    </tr>
+  </table>
+
+  <div class="divider-double"></div>
+
+  <!-- Title Block -->
+  <div class="title-block">
+    <h2>ВЫПИСНОЙ ЭПИКРИЗ</h2>
+    <h4>из медицинской карты амбулаторного (стационарного) больного</h4>
+    <div class="doc-date">Дата оформления: ${formatDateString(discharge.updatedAt)}</div>
+  </div>
+
+  <!-- Patient info -->
+  <div class="section-title">1. Сведения о пациенте</div>
+  <table class="info-table">
+    <tr>
+      <td class="label-cell">Ф.И.О. пациента:</td>
+      <td class="value-cell bold">${patient.lastName || ''} ${patient.firstName || ''}</td>
+    </tr>
+    <tr>
+      <td class="label-cell">Дата рождения:</td>
+      <td class="value-cell">${formattedDOB}</td>
+    </tr>
+    <tr>
+      <td class="label-cell">Контактный телефон:</td>
+      <td class="value-cell">${patient.phone || ''}</td>
+    </tr>
+    ${patient.email ? `
+    <tr>
+      <td class="label-cell">Электронная почта:</td>
+      <td class="value-cell">${patient.email}</td>
+    </tr>
+    ` : ''}
+    <tr>
+      <td class="label-cell">Период лечения / наблюдения:</td>
+      <td class="value-cell highlight-text">
+        с ${formatDateString(discharge.startDate)} по ${formatDateString(discharge.endDate)}
+      </td>
+    </tr>
+  </table>
+
+  <!-- Diagnosis -->
+  <div class="section-title">2. Клинический диагноз</div>
+  <div class="content-box diagnosis-box">
+    ${discharge.diagnosis || ''}
+  </div>
+
+  <!-- Complaints -->
+  ${discharge.complaints ? `
+  <div class="section-title">3. Жалобы и анамнез заболевания</div>
+  <div class="content-box pre-wrap">${discharge.complaints}</div>
+  ` : ''}
+
+  <!-- Tests -->
+  ${discharge.tests ? `
+  <div class="section-title">4. Данные обследований и лабораторных исследований</div>
+  <div class="content-box pre-wrap">${discharge.tests}</div>
+  ` : ''}
+
+  <!-- Treatment -->
+  ${discharge.treatment ? `
+  <div class="section-title">5. Проведенное лечение в клинике</div>
+  <div class="content-box pre-wrap">${discharge.treatment}</div>
+  ` : ''}
+
+  <!-- Recommendations -->
+  <div class="section-title">6. Назначения и медицинские рекомендации</div>
+  <div class="content-box recommendations-box pre-wrap">${discharge.recommendations || ''}</div>
+
+  <!-- Signatures -->
+  <table class="signature-table">
+    <tr>
+      <td style="width: 60%;">
+        <div class="signature-title">Лечащий врач:</div>
+        <div class="signature-name">${discharge.attendingDoctorName || ''}</div>
+      </td>
+      <td style="width: 40%; text-align: right;">
+        <div style="margin-bottom: 20px; font-size: 10pt; color: #475569;">Подпись врача _________________</div>
+        <div class="seal-space">М.П.</div>
+      </td>
+    </tr>
+  </table>
+
+  <!-- Footer -->
+  <div class="footer-stamp">
+    <p>Данная выписка является официальным медицинским документом клиники «Темофеика».</p>
+    <p>Документ сформирован в электронной медицинской системе клиники.</p>
+  </div>
+</body>
+</html>
+`
+
+    // Create a blob with a UTF-8 BOM so Russian Cyrillic characters are encoded properly in Excel/Word on Windows
+    const blob = new Blob(['\uFEFF' + htmlContent], {
+      type: 'application/vnd.ms-word;charset=utf-8'
+    })
+    
+    const url = URL.createObjectURL(blob)
+    const link = document.createElement('a')
+    link.href = url
+    link.download = fileName
+    document.body.appendChild(link)
+    link.click()
+    document.body.removeChild(link)
+    URL.revokeObjectURL(url)
   }
 
   if (loading) {
@@ -179,12 +471,70 @@ export default function DischargePage({ params }: PageProps) {
             <span className="logo-text">Клиника «Темофеика»</span>
           </div>
           <div className="navbar-actions">
+            <button className="btn-doc" onClick={handleDownloadDoc}>
+              <FileDown size={16} /> Скачать Word (DOC)
+            </button>
+            <button className="btn-pdf" onClick={() => setShowPrintHint(true)}>
+              <Download size={16} /> Сохранить в PDF
+            </button>
             <button className="btn-print" onClick={handlePrint}>
-              <Printer size={16} /> Печать / Сохранить в PDF
+              <Printer size={16} /> Распечатать
             </button>
           </div>
         </div>
       </header>
+
+      {/* Print Hint Modal */}
+      {showPrintHint && (
+        <div className="modal-overlay no-print" onClick={() => setShowPrintHint(false)}>
+          <div className="modal-content glass-effect" onClick={(e) => e.stopPropagation()}>
+            <button className="modal-close" onClick={() => setShowPrintHint(false)}>
+              <X size={20} />
+            </button>
+            <div className="modal-header">
+              <span className="modal-icon">📄</span>
+              <h3>Как сохранить выписку в PDF?</h3>
+            </div>
+            <div className="modal-body">
+              <p>Для сохранения документа в формате PDF выполните следующие простые шаги:</p>
+              <ol className="hint-steps">
+                <li>
+                  <span className="step-num">1</span>
+                  <p>В открывшемся окне печати найдите поле <strong>«Принтер»</strong> (или «Назначение»).</p>
+                </li>
+                <li>
+                  <span className="step-num">2</span>
+                  <p>Выберите в выпадающем списке вариант <strong>«Сохранить как PDF»</strong> (или «Microsoft Print to PDF»).</p>
+                </li>
+                <li>
+                  <span className="step-num">3</span>
+                  <p>Нажмите синюю кнопку <strong>«Сохранить»</strong> внизу и выберите папку на компьютере.</p>
+                </li>
+              </ol>
+              <div className="modal-tip">
+                <HelpCircle size={16} className="tip-icon" />
+                <span>Это позволяет сохранить бланк в идеальном векторном качестве, пригодном для пересылки.</span>
+              </div>
+            </div>
+            <div className="modal-footer">
+              <button className="btn-modal-cancel" onClick={() => setShowPrintHint(false)}>
+                Отмена
+              </button>
+              <button 
+                className="btn-modal-confirm" 
+                onClick={() => {
+                  setShowPrintHint(false)
+                  setTimeout(() => {
+                    window.print()
+                  }, 300)
+                }}
+              >
+                Понятно, открыть печать
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* Main Document Content */}
       <main className="document-wrapper">
@@ -372,6 +722,56 @@ export default function DischargePage({ params }: PageProps) {
           font-size: 1.3rem;
         }
 
+        .navbar-actions {
+          display: flex;
+          gap: 0.75rem;
+          align-items: center;
+        }
+
+        .btn-doc {
+          background: #185abd; /* Microsoft Word blue */
+          color: white;
+          border: none;
+          padding: 0.6rem 1.2rem;
+          border-radius: 0.5rem;
+          font-size: 0.85rem;
+          font-weight: 600;
+          cursor: pointer;
+          display: inline-flex;
+          align-items: center;
+          gap: 0.5rem;
+          box-shadow: 0 4px 6px -1px rgba(24, 90, 189, 0.2);
+          transition: all 0.2s ease;
+        }
+
+        .btn-doc:hover {
+          background: #12448c;
+          transform: translateY(-1px);
+          box-shadow: 0 6px 10px -1px rgba(24, 90, 189, 0.3);
+        }
+
+        .btn-pdf {
+          background: #b91c1c; /* PDF red */
+          color: white;
+          border: none;
+          padding: 0.6rem 1.2rem;
+          border-radius: 0.5rem;
+          font-size: 0.85rem;
+          font-weight: 600;
+          cursor: pointer;
+          display: inline-flex;
+          align-items: center;
+          gap: 0.5rem;
+          box-shadow: 0 4px 6px -1px rgba(185, 28, 28, 0.2);
+          transition: all 0.2s ease;
+        }
+
+        .btn-pdf:hover {
+          background: #991b1b;
+          transform: translateY(-1px);
+          box-shadow: 0 6px 10px -1px rgba(185, 28, 28, 0.3);
+        }
+
         .btn-print {
           background: var(--primary);
           color: white;
@@ -392,6 +792,220 @@ export default function DischargePage({ params }: PageProps) {
           background: var(--primary-hover);
           transform: translateY(-1px);
           box-shadow: 0 6px 10px -1px rgba(37, 99, 235, 0.3);
+        }
+
+        /* Modal Overlay */
+        .modal-overlay {
+          position: fixed;
+          top: 0;
+          left: 0;
+          right: 0;
+          bottom: 0;
+          background: rgba(15, 23, 42, 0.4);
+          backdrop-filter: blur(8px);
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          z-index: 2000;
+          animation: fadeIn 0.25s ease-out;
+        }
+
+        .modal-content {
+          background: white;
+          border-radius: 1.25rem;
+          width: 90%;
+          max-width: 520px;
+          padding: 2.25rem;
+          box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.25);
+          position: relative;
+          border: 1px solid rgba(255, 255, 255, 0.6);
+          animation: scaleUp 0.3s cubic-bezier(0.34, 1.56, 0.64, 1);
+        }
+
+        .modal-close {
+          position: absolute;
+          top: 1.25rem;
+          right: 1.25rem;
+          background: transparent;
+          border: none;
+          color: #94a3b8;
+          cursor: pointer;
+          padding: 0.25rem;
+          border-radius: 0.375rem;
+          transition: all 0.2s;
+        }
+
+        .modal-close:hover {
+          color: #475569;
+          background: #f1f5f9;
+        }
+
+        .modal-header {
+          display: flex;
+          align-items: center;
+          gap: 0.75rem;
+          margin-bottom: 1.25rem;
+        }
+
+        .modal-icon {
+          font-size: 1.75rem;
+        }
+
+        .modal-header h3 {
+          font-size: 1.25rem;
+          font-weight: 750;
+          color: #0f172a;
+          margin: 0;
+        }
+
+        .modal-body {
+          color: #475569;
+          font-size: 0.95rem;
+          line-height: 1.6;
+        }
+
+        .modal-body p {
+          margin-bottom: 1.25rem;
+        }
+
+        .hint-steps {
+          list-style: none;
+          padding: 0;
+          margin: 0 0 1.5rem 0;
+          display: flex;
+          flex-direction: column;
+          gap: 1rem;
+        }
+
+        .hint-steps li {
+          display: flex;
+          align-items: flex-start;
+          gap: 1rem;
+        }
+
+        .step-num {
+          display: inline-flex;
+          align-items: center;
+          justify-content: center;
+          background: #eff6ff;
+          color: #2563eb;
+          font-weight: 700;
+          width: 28px;
+          height: 28px;
+          border-radius: 50%;
+          font-size: 0.85rem;
+          flex-shrink: 0;
+        }
+
+        .hint-steps p {
+          margin: 0;
+          color: #334155;
+        }
+
+        .modal-tip {
+          display: flex;
+          align-items: flex-start;
+          gap: 0.5rem;
+          background: #f0fdf4;
+          border: 1px solid #bbf7d0;
+          color: #166534;
+          padding: 0.75rem 1rem;
+          border-radius: 0.75rem;
+          font-size: 0.85rem;
+          line-height: 1.4;
+        }
+
+        .tip-icon {
+          color: #16a34a;
+          flex-shrink: 0;
+          margin-top: 0.15rem;
+        }
+
+        .modal-footer {
+          display: flex;
+          justify-content: flex-end;
+          gap: 0.75rem;
+          margin-top: 2rem;
+          border-top: 1px solid #f1f5f9;
+          padding-top: 1.25rem;
+        }
+
+        .btn-modal-cancel {
+          background: #f1f5f9;
+          color: #475569;
+          border: none;
+          padding: 0.6rem 1.2rem;
+          border-radius: 0.5rem;
+          font-size: 0.875rem;
+          font-weight: 600;
+          cursor: pointer;
+          transition: all 0.2s;
+        }
+
+        .btn-modal-cancel:hover {
+          background: #e2e8f0;
+          color: #0f172a;
+        }
+
+        .btn-modal-confirm {
+          background: var(--primary);
+          color: white;
+          border: none;
+          padding: 0.6rem 1.2rem;
+          border-radius: 0.5rem;
+          font-size: 0.875rem;
+          font-weight: 600;
+          cursor: pointer;
+          transition: all 0.2s;
+          box-shadow: 0 4px 6px -1px rgba(37, 99, 235, 0.2);
+        }
+
+        .btn-modal-confirm:hover {
+          background: var(--primary-hover);
+          box-shadow: 0 6px 10px -1px rgba(37, 99, 235, 0.3);
+        }
+
+        @keyframes fadeIn {
+          from { opacity: 0; }
+          to { opacity: 1; }
+        }
+
+        @keyframes scaleUp {
+          from { transform: scale(0.95); opacity: 0; }
+          to { transform: scale(1); opacity: 1; }
+        }
+
+        /* Mobile Responsive Adjustments */
+        @media (max-width: 640px) {
+          .navbar {
+            height: auto;
+            padding: 0.75rem 0;
+          }
+          .navbar-content {
+            flex-direction: column;
+            gap: 0.75rem;
+            padding: 0 1rem;
+          }
+          .navbar-logo {
+            font-size: 1rem;
+          }
+          .navbar-actions {
+            width: 100%;
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 0.5rem;
+          }
+          .navbar-actions button {
+            padding: 0.5rem 0.75rem;
+            font-size: 0.75rem;
+            justify-content: center;
+          }
+          .navbar-actions button:nth-child(3) {
+            grid-column: span 2;
+          }
+          .page-background {
+            padding-top: 130px;
+          }
         }
 
         /* Document Sheet Container */
