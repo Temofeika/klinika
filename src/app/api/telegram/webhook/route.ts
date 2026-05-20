@@ -16,7 +16,7 @@ function normalizePhone(phone: string): string {
 }
 
 // Helper to send messages to Telegram Bot API
-async function sendTelegramMessage(token: string, chatId: string, text: string, replyMarkup?: any) {
+async function sendTelegramMessage(token: string, chatId: string, text: string, replyMarkup?: any, parseMode?: string) {
   try {
     await fetch(`https://api.telegram.org/bot${token}/sendMessage`, {
       method: 'POST',
@@ -24,7 +24,8 @@ async function sendTelegramMessage(token: string, chatId: string, text: string, 
       body: JSON.stringify({
         chat_id: chatId,
         text,
-        reply_markup: replyMarkup
+        reply_markup: replyMarkup,
+        parse_mode: parseMode
       })
     })
   } catch (e: any) {
@@ -314,6 +315,59 @@ export async function POST(request: Request) {
       })
 
       return NextResponse.json({ success: true, message: startMsg })
+    }
+
+    // 2b. HANDLE DISCHARGE COMMANDS
+    const cleanedContent = content.trim().toLowerCase()
+    if (cleanedContent === '/discharge' || cleanedContent === '/выписка' || cleanedContent === '/vypiska') {
+      console.log(`[TELEGRAM WEBHOOK] User requested discharge form.`)
+
+      let medical: any = {}
+      if (account.patient.medicalRecord) {
+        try {
+          medical = JSON.parse(account.patient.medicalRecord)
+        } catch (e) {
+          console.error('Failed to parse patient.medicalRecord JSON:', e)
+        }
+      }
+
+      const discharge = medical.discharge
+
+      if (token) {
+        if (discharge && discharge.status === 'COMPLETED') {
+          const requestUrl = new URL(request.url)
+          const baseUrl = `${requestUrl.protocol}//${requestUrl.host}`
+          const dischargeLink = `${baseUrl}/discharge/${account.patientId}`
+
+          const tgText = `🏥 <b>Ваша медицинская выписка готова!</b>\n\n` +
+            `📅 <b>Период лечения:</b> ${discharge.startDate} — ${discharge.endDate}\n` +
+            `🩺 <b>Клинический диагноз:</b> ${discharge.diagnosis}\n` +
+            `👨‍⚕️ <b>Лечащий врач:</b> ${discharge.attendingDoctorName}\n\n` +
+            `Вы можете просмотреть, распечатать или сохранить в PDF официальный бланк выписки по ссылке:\n` +
+            `🔗 <a href="${dischargeLink}">Открыть официальную выписку</a>`
+
+          await sendTelegramMessage(token, telegramId, tgText, undefined, 'HTML')
+        } else {
+          await sendTelegramMessage(
+            token,
+            telegramId,
+            `ℹ️ <b>Выписка еще не оформлена.</b>\n\nВаш лечащий врач еще не завершил заполнение выписного эпикриза. Как только она будет готова, вы получите автоматическое уведомление со ссылкой на скачивание.`
+          , undefined, 'HTML')
+        }
+      }
+
+      const cmdMsg = await prisma.message.create({
+        data: {
+          content: content,
+          source: 'TELEGRAM',
+          isIncoming: true,
+          isRead: false,
+          status: 'SENT',
+          patientId: account.patientId
+        }
+      })
+
+      return NextResponse.json({ success: true, message: cmdMsg })
     }
 
     // Process attachments if present

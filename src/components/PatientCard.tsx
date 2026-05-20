@@ -9,6 +9,7 @@ import PatientAppointments from './PatientAppointments'
 import PatientMedicalCard from './PatientMedicalCard'
 import PatientBilling from './PatientBilling'
 import PatientLabs from './PatientLabs'
+import PatientDischarge from './PatientDischarge'
 
 interface Message {
   id: string
@@ -80,7 +81,7 @@ export default function PatientCard({ patient: initialPatient, doctorId }: { pat
   const [input, setInput] = React.useState('')
   const [chatSearch, setChatSearch] = React.useState('')
   const [showSearch, setShowSearch] = React.useState(false)
-  const [activeTab, setActiveTab] = React.useState<'CHAT' | 'DOCS' | 'APPS' | 'MEDICAL' | 'BILLING' | 'LABS'>('CHAT')
+  const [activeTab, setActiveTab] = React.useState<'CHAT' | 'DOCS' | 'APPS' | 'MEDICAL' | 'BILLING' | 'LABS' | 'DISCHARGE'>('CHAT')
   const [platform, setPlatform] = React.useState<'TELEGRAM' | 'MAX'>('TELEGRAM')
   const [sending, setSending] = React.useState(false)
 
@@ -667,6 +668,12 @@ export default function PatientCard({ patient: initialPatient, doctorId }: { pat
             >
               <Microscope size={18} /> Анализы
             </button>
+            <button 
+              className={`tab-btn ${activeTab === 'DISCHARGE' ? 'active' : ''}`} 
+              onClick={() => setActiveTab('DISCHARGE')}
+            >
+              <FileText size={18} /> Выписка
+            </button>
           </div>
 
           {activeTab === 'CHAT' ? (
@@ -865,8 +872,16 @@ export default function PatientCard({ patient: initialPatient, doctorId }: { pat
             <PatientMedicalCard medical={medical} onUpdate={handleUpdateMedical} />
           ) : activeTab === 'BILLING' ? (
             <PatientBilling medical={medical} onUpdate={handleUpdateMedical} />
-          ) : (
+          ) : activeTab === 'LABS' ? (
             <PatientLabs medical={medical} onUpdate={handleUpdateMedical} />
+          ) : (
+            <PatientDischarge
+              patient={patient}
+              medical={medical}
+              onUpdate={handleUpdateMedical}
+              doctorsList={doctorsList}
+              doctorId={doctorId}
+            />
           )}
         </div>
       </div>
