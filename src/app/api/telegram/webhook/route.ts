@@ -1,5 +1,6 @@
 import { NextResponse } from 'next/server'
 import { prisma } from '@/lib/db'
+import { generateDischargePdf } from '@/lib/pdf'
 
 function normalizePhone(phone: string): string {
   let cleaned = phone.replace(/[^\d+]/g, '')
@@ -174,7 +175,12 @@ export async function POST(request: Request) {
               token, 
               telegramId, 
               "Спасибо! Мы успешно идентифицировали вас в нашей системе. Врач видит всю вашу историю приемов и ответит вам прямо здесь.",
-              { remove_keyboard: true }
+              {
+                keyboard: [
+                  [{ text: "📄 Получить выписку" }]
+                ],
+                resize_keyboard: true
+              }
             )
           }
         } else {
@@ -190,7 +196,12 @@ export async function POST(request: Request) {
               token, 
               telegramId, 
               "Спасибо! Ваш номер телефона успешно подтвержден. Врач скоро ответит вам.",
-              { remove_keyboard: true }
+              {
+                keyboard: [
+                  [{ text: "📄 Получить выписку" }]
+                ],
+                resize_keyboard: true
+              }
             )
           }
         }
@@ -280,26 +291,42 @@ export async function POST(request: Request) {
 
     // If message is "/start", automatically prompt the user to share their phone number
     if (content.trim() === '/start') {
-      console.log(`[TELEGRAM] User started chat. Sending Request Contact button...`)
+      console.log(`[TELEGRAM] User started chat.`)
       
       if (token) {
-        await sendTelegramMessage(
-          token,
-          telegramId,
-          `Здравствуйте, ${firstName}! Добро пожаловать в нашу клинику. 😊\n\nЧтобы мы могли связать этот чат с вашей медицинской картой и ответить вам, пожалуйста, подтвердите ваш номер телефона, нажав кнопку «📱 Поделиться номером» ниже.`,
-          {
-            keyboard: [
-              [
-                {
-                  text: '📱 Поделиться номером',
-                  request_contact: true
-                }
-              ]
-            ],
-            resize_keyboard: true,
-            one_time_keyboard: true
-          }
-        )
+        if (account.patient.phone && !account.patient.phone.startsWith('+TG-')) {
+          // Patient has already verified their phone number!
+          await sendTelegramMessage(
+            token,
+            telegramId,
+            `Здравствуйте, ${firstName}! Рады приветствовать вас в клинике «PlanetaMed»! 😊\n\nВы можете запросить вашу медицинскую выписку в любой момент с помощью кнопки ниже.`,
+            {
+              keyboard: [
+                [{ text: "📄 Получить выписку" }]
+              ],
+              resize_keyboard: true
+            }
+          )
+        } else {
+          // Patient needs to share their phone number
+          await sendTelegramMessage(
+            token,
+            telegramId,
+            `Здравствуйте, ${firstName}! Добро пожаловать в нашу клинику. 😊\n\nЧтобы мы могли связать этот чат с вашей медицинской картой и ответить вам, пожалуйста, подтвердите ваш номер телефона, нажав кнопку «📱 Поделиться номером» ниже.`,
+            {
+              keyboard: [
+                [
+                  {
+                    text: '📱 Поделиться номером',
+                    request_contact: true
+                  }
+                ]
+              ],
+              resize_keyboard: true,
+              one_time_keyboard: true
+            }
+          )
+        }
       }
 
       // We still save the /start message in database so the doctor sees when they logged in
@@ -319,7 +346,11 @@ export async function POST(request: Request) {
 
     // 2b. HANDLE DISCHARGE COMMANDS
     const cleanedContent = content.trim().toLowerCase()
-    if (cleanedContent === '/discharge' || cleanedContent === '/выписка' || cleanedContent === '/vypiska') {
+    const isDischargeRequest = [
+      '/discharge', '/выписка', '/vypiska', '📄 получить выписку', 'получить выписку', 'скачать выписку', 'выписка'
+    ].includes(cleanedContent)
+
+    if (isDischargeRequest) {
       console.log(`[TELEGRAM WEBHOOK] User requested discharge form.`)
 
       let medical: any = {}
@@ -343,16 +374,59 @@ export async function POST(request: Request) {
             `📅 <b>Период лечения:</b> ${discharge.startDate} — ${discharge.endDate}\n` +
             `🩺 <b>Клинический диагноз:</b> ${discharge.diagnosis}\n` +
             `👨‍⚕️ <b>Лечащий врач:</b> ${discharge.attendingDoctorName}\n\n` +
-            `Вы можете просмотреть, распечатать или сохранить в PDF официальный бланк выписки по ссылке:\n` +
-            `🔗 <a href="${dischargeLink}">Открыть официальную выписку</a>`
+            `Вы можете также просмотреть веб-версию бланка, распечатать или экспортировать в Word по ссылке:\n` +
+            `🔗 <a href="${dischargeLink}">Открыть веб-бланк выписки</a>`
 
-          await sendTelegramMessage(token, telegramId, tgText, undefined, 'HTML')
+          try {
+            console.log(`[TELEGRAM WEBHOOK] Generating PDF for patient ${account.patientId}...`)
+            const pdfBuffer = await generateDischargePdf(account.patient, discharge)
+
+            console.log(`[TELEGRAM WEBHOOK] Sending Telegram PDF to chat ${telegramId}...`)
+            const formData = new FormData()
+            formData.append('chat_id', telegramId)
+            
+            const lastName = account.patient.lastName || ''
+            const firstName = account.patient.firstName || ''
+            const rawFileName = `Vypiska_${lastName}_${firstName}`.replace(/[^a-zA-Z0-9_а-яА-Я]/g, '')
+            const fileName = `${rawFileName || 'discharge'}.pdf`
+            
+            formData.append('document', new Blob([new Uint8Array(pdfBuffer)], { type: 'application/pdf' }), fileName)
+            formData.append('caption', tgText)
+            formData.append('parse_mode', 'HTML')
+            formData.append('reply_markup', JSON.stringify({
+              keyboard: [
+                [{ text: "📄 Получить выписку" }]
+              ],
+              resize_keyboard: true
+            }))
+
+            await fetch(`https://api.telegram.org/bot${token}/sendDocument`, {
+              method: 'POST',
+              body: formData
+            })
+          } catch (pdfError: any) {
+            console.error('[TELEGRAM WEBHOOK PDF ERROR]', pdfError.message)
+            // Fallback to text message
+            await sendTelegramMessage(token, telegramId, tgText, {
+              keyboard: [
+                [{ text: "📄 Получить выписку" }]
+              ],
+              resize_keyboard: true
+            }, 'HTML')
+          }
         } else {
           await sendTelegramMessage(
             token,
             telegramId,
-            `ℹ️ <b>Выписка еще не оформлена.</b>\n\nВаш лечащий врач еще не завершил заполнение выписного эпикриза. Как только она будет готова, вы получите автоматическое уведомление со ссылкой на скачивание.`
-          , undefined, 'HTML')
+            `ℹ️ <b>Выписка еще не оформлена.</b>\n\nВаш лечащий врач еще не завершил заполнение выписного эпикриза. Как только она будет готова, вы получите автоматическое уведомление с файлом выписки.`,
+            {
+              keyboard: [
+                [{ text: "📄 Получить выписку" }]
+              ],
+              resize_keyboard: true
+            },
+            'HTML'
+          )
         }
       }
 

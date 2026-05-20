@@ -1,5 +1,6 @@
 import { NextResponse } from 'next/server'
 import { prisma } from '@/lib/db'
+import { generateDischargePdf } from '@/lib/pdf'
 
 export async function POST(request: Request) {
   try {
@@ -63,36 +64,45 @@ export async function POST(request: Request) {
             `📅 <b>Период лечения:</b> ${discharge.startDate} — ${discharge.endDate}\n` +
             `🩺 <b>Клинический диагноз:</b> ${discharge.diagnosis}\n` +
             `👨‍⚕️ <b>Лечащий врач:</b> ${discharge.attendingDoctorName}\n\n` +
-            `Вы можете просмотреть, распечатать или сохранить в PDF официальный бланк выписки по ссылке:\n` +
-            `🔗 <a href="${dischargeLink}">Открыть официальную выписку</a>`
+            `Вы можете также просмотреть веб-версию бланка, распечатать или экспортировать в Word по ссылке:\n` +
+            `🔗 <a href="${dischargeLink}">Открыть веб-бланк выписки</a>`
 
           try {
-            console.log(`[API DISCHARGE] Sending Telegram notification to chat ${tgAccount.externalId}...`)
+            console.log(`[API DISCHARGE] Generating PDF for patient ${patientId}...`)
+            const pdfBuffer = await generateDischargePdf(patient, discharge)
+
+            console.log(`[API DISCHARGE] Sending Telegram PDF notification to chat ${tgAccount.externalId}...`)
             
-            const tgRes = await fetch(`https://api.telegram.org/bot${token}/sendMessage`, {
+            const formData = new FormData()
+            formData.append('chat_id', tgAccount.externalId)
+            
+            const lastName = patient.lastName || ''
+            const firstName = patient.firstName || ''
+            const rawFileName = `Vypiska_${lastName}_${firstName}`.replace(/[^a-zA-Z0-9_а-яА-Я]/g, '')
+            const fileName = `${rawFileName || 'discharge'}.pdf`
+            
+            formData.append('document', new Blob([new Uint8Array(pdfBuffer)], { type: 'application/pdf' }), fileName)
+            formData.append('caption', tgText)
+            formData.append('parse_mode', 'HTML')
+            formData.append('reply_markup', JSON.stringify({
+              keyboard: [
+                [{ text: "📄 Получить выписку" }]
+              ],
+              resize_keyboard: true
+            }))
+
+            const tgRes = await fetch(`https://api.telegram.org/bot${token}/sendDocument`, {
               method: 'POST',
-              headers: { 'Content-Type': 'application/json' },
-              body: JSON.stringify({
-                chat_id: tgAccount.externalId,
-                text: tgText,
-                parse_mode: 'HTML',
-                disable_web_page_preview: false
-              })
+              body: formData
             })
 
             const tgData = await tgRes.json()
 
             if (tgData.ok) {
-              console.log('[API DISCHARGE] Telegram notification sent successfully!')
+              console.log('[API DISCHARGE] Telegram PDF notification sent successfully!')
               
               // Save the outgoing notification message to the database CRM chat log
-              const getDoctorEmoji = (pos: string) => {
-                const p = pos.toLowerCase()
-                if (p.includes('систем')) return '💻'
-                if (p.includes('администр')) return '📋'
-                return '🩺'
-              }
-              const displayContent = `🏥 Автоматическое уведомление: Ваша выписка готова. Ссылка на бланк: ${dischargeLink}`
+              const displayContent = `🏥 Автоматическое уведомление: Отправлена выписка в PDF. Ссылка: ${dischargeLink}`
 
               await prisma.$transaction([
                 prisma.message.create({
