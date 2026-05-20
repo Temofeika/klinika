@@ -73,27 +73,42 @@ export async function POST(request: Request) {
 
             console.log(`[API DISCHARGE] Sending Telegram PDF notification to chat ${tgAccount.externalId}...`)
             
-            const formData = new FormData()
-            formData.append('chat_id', tgAccount.externalId)
+            const boundary = '----TelegramFormBoundary' + Math.random().toString(36).substring(2)
+            const replyMarkupStr = JSON.stringify({
+              keyboard: [[{ text: "📄 Получить выписку" }]],
+              resize_keyboard: true
+            })
             
             const lastName = patient.lastName || ''
             const firstName = patient.firstName || ''
             const rawFileName = `Vypiska_${lastName}_${firstName}`.replace(/[^a-zA-Z0-9_а-яА-Я]/g, '')
             const fileName = `${rawFileName || 'discharge'}.pdf`
             
-            formData.append('document', new Blob([new Uint8Array(pdfBuffer)], { type: 'application/pdf' }), fileName)
-            formData.append('caption', tgText)
-            formData.append('parse_mode', 'HTML')
-            formData.append('reply_markup', JSON.stringify({
-              keyboard: [
-                [{ text: "📄 Получить выписку" }]
-              ],
-              resize_keyboard: true
-            }))
+            const startStr = 
+              `--${boundary}\r\n` +
+              `Content-Disposition: form-data; name="chat_id"\r\n\r\n` +
+              `${tgAccount.externalId}\r\n` +
+              `--${boundary}\r\n` +
+              `Content-Disposition: form-data; name="caption"\r\n\r\n` +
+              `${tgText}\r\n` +
+              `--${boundary}\r\n` +
+              `Content-Disposition: form-data; name="parse_mode"\r\n\r\n` +
+              `HTML\r\n` +
+              `--${boundary}\r\n` +
+              `Content-Disposition: form-data; name="reply_markup"\r\n\r\n` +
+              `${replyMarkupStr}\r\n` +
+              `--${boundary}\r\n` +
+              `Content-Disposition: form-data; name="document"; filename="${fileName}"\r\n` +
+              `Content-Type: application/pdf\r\n\r\n`
+              
+            const startBuf = Buffer.from(startStr, 'utf-8')
+            const endBuf = Buffer.from(`\r\n--${boundary}--\r\n`, 'utf-8')
+            const body = Buffer.concat([startBuf, pdfBuffer, endBuf])
 
             const tgRes = await fetch(`https://api.telegram.org/bot${token}/sendDocument`, {
               method: 'POST',
-              body: formData
+              headers: { 'Content-Type': `multipart/form-data; boundary=${boundary}` },
+              body: body
             })
 
             const tgData = await tgRes.json()
