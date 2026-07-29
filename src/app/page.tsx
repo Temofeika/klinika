@@ -122,7 +122,7 @@ export default function Home() {
 
     const pollActivePatient = async () => {
       try {
-        const res = await fetch(`/api/patient?id=${patient.id}`)
+        const res = await fetch(`/api/patient?id=${patient.id}&doctorId=${activeDoctor?.id || ''}`)
         const data = await res.json()
         
         if (JSON.stringify(data.messages) !== JSON.stringify(patient.messages)) {
@@ -135,7 +135,7 @@ export default function Home() {
 
     const interval = setInterval(pollActivePatient, 3000)
     return () => clearInterval(interval)
-  }, [patient?.id, patient?.messages])
+  }, [patient?.id, patient?.messages, activeDoctor?.id])
 
   // 5. Automatically mark incoming messages as read in real-time when patient is active
   useEffect(() => {
@@ -186,7 +186,7 @@ export default function Home() {
         p.id === id ? { ...p, messages: p.messages.map((m: any) => ({ ...m, isRead: true })) } : p
       ))
 
-      const res = await fetch(`/api/patient?id=${id}`)
+      const res = await fetch(`/api/patient?id=${id}&doctorId=${activeDoctor?.id || ''}`)
       const data = await res.json()
       setPatient(data)
     } catch (err) {
