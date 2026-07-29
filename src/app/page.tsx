@@ -6,6 +6,7 @@ import PatientList from '@/components/PatientList'
 import DoctorDashboard from '@/components/DoctorDashboard'
 import NotificationCenter from '@/components/NotificationCenter'
 import AddPatientModal from '@/components/AddPatientModal'
+import { supabase } from '@/lib/supabase-client'
 import { LayoutDashboard, Users, Settings, LogOut, MessageCircle, TrendingUp, ChevronDown, User, ShieldAlert, Check } from 'lucide-react'
 
 export default function Home() {
@@ -25,6 +26,22 @@ export default function Home() {
   const [activeDoctor, setActiveDoctor] = useState<any>(null)
   const [showDocMenu, setShowDocMenu] = useState(false)
   const [seeding, setSeeding] = useState(false)
+  
+  // Realtime trigger
+  const [lastDbUpdate, setLastDbUpdate] = useState(Date.now())
+
+  // Supabase Realtime Subscription
+  useEffect(() => {
+    const channel = supabase.channel('realtime-db')
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'Message' }, (payload) => {
+        setLastDbUpdate(Date.now())
+      })
+      .subscribe()
+
+    return () => {
+      supabase.removeChannel(channel)
+    }
+  }, [])
 
   // 1. Initial Load: Fetch doctors registry
   useEffect(() => {
@@ -84,11 +101,11 @@ export default function Home() {
     loadDoctorPatients()
   }, [activeDoctor?.id])
 
-  // 3. Poll patients list every 3 seconds to get unread badges & new patient alerts
+  // 3. Update patients list when DB changes (to get unread badges & new patient alerts)
   useEffect(() => {
     if (!activeDoctor?.id) return
 
-    const pollPatientsList = async () => {
+    const fetchPatientsList = async () => {
       try {
         const res = await fetch(`/api/patient?doctorId=${activeDoctor.id}`)
         const data = await res.json()
@@ -96,11 +113,11 @@ export default function Home() {
         // Compare IDs and their incoming unread message counts to trigger re-renders dynamically
         const currentSummary = patients.map(p => ({
           id: p.id,
-          unreadCount: p.messages.filter((m: any) => m.isIncoming && !m.isRead).length
+          unreadCount: p.messages?.filter((m: any) => m.isIncoming && !m.isRead).length || 0
         }))
         const newSummary = data.map((p: any) => ({
           id: p.id,
-          unreadCount: p.messages.filter((m: any) => m.isIncoming && !m.isRead).length
+          unreadCount: p.messages?.filter((m: any) => m.isIncoming && !m.isRead).length || 0
         }))
         
         if (JSON.stringify(currentSummary) !== JSON.stringify(newSummary)) {
@@ -108,19 +125,18 @@ export default function Home() {
           setStats(prev => ({ ...prev, totalPatients: data.length }))
         }
       } catch (err) {
-        console.error('Failed to poll patients list:', err)
+        console.error('Failed to fetch patients list:', err)
       }
     }
 
-    const interval = setInterval(pollPatientsList, 3000)
-    return () => clearInterval(interval)
-  }, [activeDoctor?.id, patients])
+    fetchPatientsList()
+  }, [activeDoctor?.id, lastDbUpdate])
 
-  // 4. Poll active selected patient details to receive chat messages in real time
+  // 4. Fetch active selected patient details to receive chat messages when DB updates
   useEffect(() => {
     if (!patient?.id) return
 
-    const pollActivePatient = async () => {
+    const fetchActivePatient = async () => {
       try {
         const res = await fetch(`/api/patient?id=${patient.id}&doctorId=${activeDoctor?.id || ''}`)
         const data = await res.json()
@@ -129,13 +145,12 @@ export default function Home() {
           setPatient(data)
         }
       } catch (err) {
-        console.error('Failed to poll active patient details:', err)
+        console.error('Failed to fetch active patient details:', err)
       }
     }
 
-    const interval = setInterval(pollActivePatient, 3000)
-    return () => clearInterval(interval)
-  }, [patient?.id, patient?.messages, activeDoctor?.id])
+    fetchActivePatient()
+  }, [patient?.id, activeDoctor?.id, lastDbUpdate])
 
   // 5. Automatically mark incoming messages as read in real-time when patient is active
   useEffect(() => {
@@ -376,6 +391,7 @@ export default function Home() {
             activeDoctor={activeDoctor} 
             onSelectPatient={handleSelectPatient} 
             onAddPatient={() => setShowAddModal(true)} 
+            lastDbUpdate={lastDbUpdate}
           />
         ) : patient ? (
           <PatientCard patient={patient as any} doctorId={activeDoctor?.id} />

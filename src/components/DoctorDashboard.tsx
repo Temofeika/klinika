@@ -7,9 +7,10 @@ interface DoctorDashboardProps {
   activeDoctor: any;
   onSelectPatient: (id: string) => void;
   onAddPatient: () => void;
+  lastDbUpdate: number;
 }
 
-export default function DoctorDashboard({ activeDoctor, onSelectPatient, onAddPatient }: DoctorDashboardProps) {
+export default function DoctorDashboard({ activeDoctor, onSelectPatient, onAddPatient, lastDbUpdate }: DoctorDashboardProps) {
   const [stats, setStats] = useState<any>(null);
   const [loading, setLoading] = useState(true);
 
@@ -30,10 +31,7 @@ export default function DoctorDashboard({ activeDoctor, onSelectPatient, onAddPa
     
     fetchStats();
     
-    // Poll every 5 seconds for updates
-    const interval = setInterval(fetchStats, 5000);
-    return () => clearInterval(interval);
-  }, [activeDoctor?.id]);
+  }, [activeDoctor?.id, lastDbUpdate]);
 
   if (loading) {
     return (
