@@ -3,6 +3,7 @@
 import { useState, useEffect } from 'react'
 import PatientCard from '@/components/PatientCard'
 import PatientList from '@/components/PatientList'
+import DoctorDashboard from '@/components/DoctorDashboard'
 import NotificationCenter from '@/components/NotificationCenter'
 import AddPatientModal from '@/components/AddPatientModal'
 import { LayoutDashboard, Users, Settings, LogOut, MessageCircle, TrendingUp, ChevronDown, User, ShieldAlert, Check } from 'lucide-react'
@@ -11,6 +12,7 @@ export default function Home() {
   const [patient, setPatient] = useState<any>(null)
   const [patients, setPatients] = useState<any[]>([])
   const [loading, setLoading] = useState(true)
+  const [activeView, setActiveView] = useState<'dashboard' | 'patient'>('dashboard')
   const [showAddModal, setShowAddModal] = useState(false)
   const [stats, setStats] = useState({
     totalPatients: 0,
@@ -69,10 +71,8 @@ export default function Home() {
         setPatients(data)
         setStats(prev => ({ ...prev, totalPatients: data.length }))
         
-        // Auto-select first patient of this doctor
-        if (data.length > 0) {
-          await handleSelectPatient(data[0].id)
-        } else {
+        setActiveView('dashboard')
+        if (data.length === 0) {
           setPatient(null)
         }
       } catch (err) {
@@ -189,6 +189,7 @@ export default function Home() {
       const res = await fetch(`/api/patient?id=${id}&doctorId=${activeDoctor?.id || ''}`)
       const data = await res.json()
       setPatient(data)
+      setActiveView('patient')
     } catch (err) {
       console.error('Failed to fetch patient details:', err)
     }
@@ -282,7 +283,9 @@ export default function Home() {
         </div>
         
         <nav className="sidebar-nav">
-          <a href="#" className="nav-item active"><LayoutDashboard size={20} /> Дашборд</a>
+          <a href="#" className={`nav-item ${activeView === 'dashboard' ? 'active' : ''}`} onClick={(e) => { e.preventDefault(); setActiveView('dashboard'); setPatient(null); }}>
+            <LayoutDashboard size={20} /> Дашборд
+          </a>
           {activeDoctor?.position === 'Администратор системы' && (
             <a href="/settings" className="nav-item"><Settings size={20} /> Настройки</a>
           )}
@@ -368,12 +371,18 @@ export default function Home() {
           <div className="dashboard-loading">
             <p>Синхронизация профилей пациентов...</p>
           </div>
+        ) : activeView === 'dashboard' ? (
+          <DoctorDashboard 
+            activeDoctor={activeDoctor} 
+            onSelectPatient={handleSelectPatient} 
+            onAddPatient={() => setShowAddModal(true)} 
+          />
         ) : patient ? (
           <PatientCard patient={patient as any} doctorId={activeDoctor?.id} />
         ) : (
           <div className="empty-workspace glass-card">
             <Users size={32} />
-            <p>У данного врача пока нет назначенных пациентов. Нажмите «Добавить нового» в меню слева для регистрации.</p>
+            <p>У данного врача пока нет назначенных пациентов. Выберите пациента или добавьте нового.</p>
           </div>
         )}
       </div>
