@@ -12,55 +12,63 @@ datasource db {
 }
 
 model Patient {
-  id            String   @id @default(cuid())
+  id            String    @id @default(cuid())
   firstName     String
   lastName      String
-  phone         String   @unique
+  phone         String    @unique
   email         String?
   dateOfBirth   DateTime?
   gender        String?
   notes         String?
-  createdAt     DateTime @default(now())
-  updatedAt     DateTime @updatedAt
-  lastMessageAt DateTime @default(now())
-  
-  medicalRecord String?  // Stores JSON string of all clinical records
-  
-  doctors       Doctor[]
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime  @updatedAt
+  lastMessageAt DateTime  @default(now())
 
-  messages      Message[]
+  medicalRecord String? // Stores JSON string of all clinical records
+
+  doctors Doctor[]
+
+  messages          Message[]
   messengerAccounts MessengerAccount[]
 }
 
 model Doctor {
-  id        String    @id @default(cuid())
-  firstName String
-  lastName  String
-  position  String    // e.g., "Терапевт", "Кардиолог"
-  username  String    @unique
-  patients  Patient[]
+  id                String             @id @default(cuid())
+  firstName         String
+  lastName          String
+  position          String // e.g., "Терапевт", "Кардиолог"
+  username          String             @unique
+  patients          Patient[]
+  messages          Message[]
+  messengerAccounts MessengerAccount[]
 }
 
 model Message {
-  id          String   @id @default(cuid())
-  content     String
-  source      String   // "TELEGRAM", "MAX"
-  timestamp   DateTime @default(now())
-  isIncoming  Boolean  @default(true)
-  isRead      Boolean  @default(false)
-  status      String   @default("SENT") // "PENDING", "SENT"
-  
-  patient     Patient  @relation(fields: [patientId], references: [id])
-  patientId   String
+  id         String   @id @default(cuid())
+  content    String
+  source     String // "TELEGRAM", "MAX"
+  timestamp  DateTime @default(now())
+  isIncoming Boolean  @default(true)
+  isRead     Boolean  @default(false)
+  status     String   @default("SENT") // "PENDING", "SENT"
+
+  patient   Patient @relation(fields: [patientId], references: [id])
+  patientId String
+
+  doctor   Doctor? @relation(fields: [doctorId], references: [id])
+  doctorId String?
 }
 
 model MessengerAccount {
-  id          String   @id @default(cuid())
-  platform    String   // "TELEGRAM", "MAX"
-  externalId  String   // e.g., telegram chat id or phone number
-  
-  patient     Patient  @relation(fields: [patientId], references: [id])
-  patientId   String
+  id         String @id @default(cuid())
+  platform   String // "TELEGRAM", "MAX"
+  externalId String // e.g., telegram chat id or phone number
+
+  patient   Patient @relation(fields: [patientId], references: [id])
+  patientId String
+
+  activeDoctor   Doctor? @relation(fields: [activeDoctorId], references: [id])
+  activeDoctorId String?
 
   @@unique([platform, externalId])
 }

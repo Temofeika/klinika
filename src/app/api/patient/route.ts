@@ -8,10 +8,23 @@ export async function GET(request: Request) {
 
   try {
     if (id) {
+      let doctor = null;
+      if (doctorId) {
+        doctor = await prisma.doctor.findUnique({ where: { id: doctorId } })
+      }
+      const isAdmin = doctor?.position === 'Администратор' || doctor?.position === 'Администратор системы';
+
       const patient = await prisma.patient.findUnique({
         where: { id },
         include: {
-          messages: true,
+          messages: isAdmin ? true : (doctorId ? {
+            where: {
+              OR: [
+                { doctorId: doctorId },
+                { doctorId: null }
+              ]
+            }
+          } : true),
           messengerAccounts: true,
           doctors: true
         }
@@ -20,11 +33,14 @@ export async function GET(request: Request) {
     }
 
     let whereClause: any = {}
+    let isAdmin = false
     if (doctorId) {
       const doctor = await prisma.doctor.findUnique({
         where: { id: doctorId }
       })
-      if (doctor?.position === 'Администратор' || doctor?.position === 'Администратор системы') {
+      isAdmin = doctor?.position === 'Администратор' || doctor?.position === 'Администратор системы'
+      
+      if (isAdmin) {
         // Administrators see all patients in the database
         whereClause = {}
       } else {
@@ -53,7 +69,18 @@ export async function GET(request: Request) {
             position: true
           }
         },
-        messages: {
+        messages: (!isAdmin && doctorId) ? {
+          where: {
+            OR: [
+              { doctorId: doctorId },
+              { doctorId: null }
+            ]
+          },
+          select: {
+            isRead: true,
+            isIncoming: true
+          }
+        } : {
           select: {
             isRead: true,
             isIncoming: true

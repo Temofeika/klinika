@@ -105,6 +105,65 @@ export async function POST(request: Request) {
     const payload = await request.json()
     console.log('[TELEGRAM WEBHOOK PAYLOAD]', JSON.stringify(payload))
 
+    // Fetch Bot Token from settings
+    const tokenSetting = await prisma.systemSetting.findUnique({
+      where: { key: 'TELEGRAM_BOT_TOKEN' }
+    })
+    const token = tokenSetting?.value
+
+    if (payload.callback_query) {
+      const callbackQuery = payload.callback_query;
+      const data = callbackQuery.data;
+      const telegramId = callbackQuery.from.id.toString();
+
+      let account = await prisma.messengerAccount.findUnique({
+        where: {
+          platform_externalId: {
+            platform: 'TELEGRAM',
+            externalId: telegramId
+          }
+        },
+        include: { patient: true }
+      });
+
+      if (!account) return NextResponse.json({ status: 'ignored' });
+
+      if (data && data.startsWith('doctor_switch_')) {
+        const doctorId = data.replace('doctor_switch_', '');
+        const doctor = await prisma.doctor.findUnique({ where: { id: doctorId } });
+        if (doctor) {
+          await prisma.messengerAccount.update({
+            where: { id: account.id },
+            data: { activeDoctorId: doctorId }
+          });
+          
+          if (token) {
+            await sendTelegramMessage(
+              token,
+              telegramId,
+              `✅ Теперь ваши сообщения будут отправляться врачу: ${doctor.position} ${doctor.lastName} ${doctor.firstName}. Напишите ваш вопрос.`,
+              {
+                keyboard: [
+                  [{ text: "👨‍⚕️ Сменить врача" }],
+                  [{ text: "📄 Получить выписку" }]
+                ],
+                resize_keyboard: true
+              }
+            );
+            
+            try {
+               await fetch(`https://api.telegram.org/bot${token}/answerCallbackQuery`, {
+                 method: 'POST',
+                 headers: { 'Content-Type': 'application/json' },
+                 body: JSON.stringify({ callback_query_id: callbackQuery.id })
+               });
+            } catch (e) {}
+          }
+        }
+      }
+      return NextResponse.json({ success: true, status: 'callback_processed' });
+    }
+
     const messageObj = payload.message
     if (!messageObj || !messageObj.chat || messageObj.chat.type !== 'private') {
       return NextResponse.json({ status: 'ignored' })
@@ -114,11 +173,7 @@ export async function POST(request: Request) {
     const fromUser = messageObj.from
     const telegramId = chat.id.toString()
     
-    // Fetch Bot Token from settings
-    const tokenSetting = await prisma.systemSetting.findUnique({
-      where: { key: 'TELEGRAM_BOT_TOKEN' }
-    })
-    const token = tokenSetting?.value
+
 
     // 1. HANDLE SHARE CONTACT UPDATE
     if (messageObj.contact) {
@@ -302,6 +357,7 @@ export async function POST(request: Request) {
             `Здравствуйте, ${firstName}! Рады приветствовать вас в клинике «PlanetaMed»! 😊\n\nВы можете запросить вашу медицинскую выписку в любой момент с помощью кнопки ниже.`,
             {
               keyboard: [
+                [{ text: "👨‍⚕️ Сменить врача" }],
                 [{ text: "📄 Получить выписку" }]
               ],
               resize_keyboard: true
@@ -344,8 +400,47 @@ export async function POST(request: Request) {
       return NextResponse.json({ success: true, message: startMsg })
     }
 
-    // 2b. HANDLE DISCHARGE COMMANDS
     const cleanedContent = content.trim().toLowerCase()
+
+    // 2a. HANDLE DOCTOR SWITCH
+    if (cleanedContent === '👨‍⚕️ сменить врача' || cleanedContent === '/doctors') {
+      console.log(`[TELEGRAM WEBHOOK] User requested doctor switch.`)
+      
+      const patientDoctors = await prisma.doctor.findMany({
+        where: { patients: { some: { id: account.patientId } } }
+      });
+
+      if (patientDoctors.length === 0) {
+        if (token) {
+          await sendTelegramMessage(token, telegramId, "К сожалению, за вами пока не закреплен ни один врач.", {
+             keyboard: [
+               [{ text: "👨‍⚕️ Сменить врача" }],
+               [{ text: "📄 Получить выписку" }]
+             ],
+             resize_keyboard: true
+          });
+        }
+        return NextResponse.json({ success: true });
+      }
+
+      await prisma.messengerAccount.update({
+        where: { id: account.id },
+        data: { activeDoctorId: null }
+      });
+
+      if (token) {
+        const inlineKeyboard = patientDoctors.map(d => ([{
+          text: `${d.position} ${d.lastName} ${d.firstName}`,
+          callback_data: `doctor_switch_${d.id}`
+        }]));
+
+        await sendTelegramMessage(token, telegramId, "С кем из ваших лечащих врачей вы хотите связаться?", {
+          inline_keyboard: inlineKeyboard
+        });
+      }
+      return NextResponse.json({ success: true, status: 'switch_prompted' });
+    }
+
     const isDischargeRequest = [
       '/discharge', '/выписка', '/vypiska', '📄 получить выписку', 'получить выписку', 'скачать выписку', 'выписка'
     ].includes(cleanedContent)
@@ -526,6 +621,33 @@ export async function POST(request: Request) {
       }
     }
 
+    if (!account.activeDoctorId) {
+      if (token) {
+        const patientDoctors = await prisma.doctor.findMany({
+          where: { patients: { some: { id: account.patientId } } }
+        });
+        
+        if (patientDoctors.length > 0) {
+          const inlineKeyboard = patientDoctors.map(d => ([{
+            text: `${d.position} ${d.lastName} ${d.firstName}`,
+            callback_data: `doctor_switch_${d.id}`
+          }]));
+          await sendTelegramMessage(token, telegramId, "⚠️ Пожалуйста, выберите врача, которому хотите написать:", {
+            inline_keyboard: inlineKeyboard
+          });
+        } else {
+           // No doctors, but we still allow message to be saved for admin
+        }
+      }
+      
+      const patientDoctors = await prisma.doctor.findMany({
+          where: { patients: { some: { id: account.patientId } } }
+      });
+      if (patientDoctors.length > 0) {
+          return NextResponse.json({ success: false, status: 'doctor_required' });
+      }
+    }
+
     // Save message and update activity time
     const savedMessage = await prisma.$transaction([
       prisma.message.create({
@@ -535,7 +657,8 @@ export async function POST(request: Request) {
           isIncoming: true,
           isRead: false,
           status: 'SENT',
-          patientId: account.patientId
+          patientId: account.patientId,
+          doctorId: account.activeDoctorId
         }
       }),
       prisma.patient.update({

@@ -105,7 +105,8 @@ export async function POST(request: Request) {
           isIncoming: false,
           isRead: true, // outgoing messages are read by default
           status: 'SENT',
-          patientId
+          patientId,
+          doctorId
         }
       }),
       prisma.patient.update({
