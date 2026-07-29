@@ -232,6 +232,7 @@ export async function POST(request: Request) {
               "Спасибо! Мы успешно идентифицировали вас в нашей системе. Врач видит всю вашу историю приемов и ответит вам прямо здесь.",
               {
                 keyboard: [
+                  [{ text: "👨‍⚕️ Сменить врача" }],
                   [{ text: "📄 Получить выписку" }]
                 ],
                 resize_keyboard: true
@@ -253,6 +254,7 @@ export async function POST(request: Request) {
               "Спасибо! Ваш номер телефона успешно подтвержден. Врач скоро ответит вам.",
               {
                 keyboard: [
+                  [{ text: "👨‍⚕️ Сменить врача" }],
                   [{ text: "📄 Получить выписку" }]
                 ],
                 resize_keyboard: true
@@ -479,7 +481,10 @@ export async function POST(request: Request) {
             console.log(`[TELEGRAM WEBHOOK] Sending Telegram PDF to chat ${telegramId}...`)
             const boundary = '----TelegramFormBoundary' + Math.random().toString(36).substring(2)
             const replyMarkupStr = JSON.stringify({
-              keyboard: [[{ text: "📄 Получить выписку" }]],
+              keyboard: [
+                [{ text: "👨‍⚕️ Сменить врача" }],
+                [{ text: "📄 Получить выписку" }]
+              ],
               resize_keyboard: true
             })
             
@@ -524,6 +529,7 @@ export async function POST(request: Request) {
             // Fallback to text message
             await sendTelegramMessage(token, telegramId, tgText, {
               keyboard: [
+                [{ text: "👨‍⚕️ Сменить врача" }],
                 [{ text: "📄 Получить выписку" }]
               ],
               resize_keyboard: true
@@ -536,6 +542,7 @@ export async function POST(request: Request) {
             `ℹ️ <b>Выписка еще не оформлена.</b>\n\nВаш лечащий врач еще не завершил заполнение выписного эпикриза. Как только она будет готова, вы получите автоматическое уведомление с файлом выписки.`,
             {
               keyboard: [
+                [{ text: "👨‍⚕️ Сменить врача" }],
                 [{ text: "📄 Получить выписку" }]
               ],
               resize_keyboard: true
