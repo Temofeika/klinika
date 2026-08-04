@@ -46,3 +46,8 @@ next-env.d.ts
 *.db
 *.sqlite
 *.sqlite3
+
+# extracted CHM files
+Medialog_help_8108.chm
+chm_extracted/
+

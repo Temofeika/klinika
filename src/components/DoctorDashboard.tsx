@@ -4,13 +4,13 @@ import { format } from 'date-fns';
 import { ru } from 'date-fns/locale';
 
 interface DoctorDashboardProps {
-  activeDoctor: any;
+  activeDoctor?: any;
   onSelectPatient: (id: string) => void;
   onAddPatient: () => void;
-  lastDbUpdate: number;
+  lastDbUpdate?: number;
 }
 
-export default function DoctorDashboard({ activeDoctor, onSelectPatient, onAddPatient, lastDbUpdate }: DoctorDashboardProps) {
+export default function DoctorDashboard({ activeDoctor, onSelectPatient, onAddPatient, lastDbUpdate = Date.now() }: DoctorDashboardProps) {
   const [stats, setStats] = useState<any>(null);
   const [loading, setLoading] = useState(true);
 

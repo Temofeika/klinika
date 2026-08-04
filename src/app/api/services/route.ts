@@ -5,10 +5,10 @@ const prisma = new PrismaClient()
 
 export async function GET() {
   try {
-    const doctors = await prisma.doctor.findMany({
-      orderBy: { lastName: 'asc' }
+    const services = await prisma.service.findMany({
+      orderBy: { name: 'asc' }
     })
-    return NextResponse.json(doctors)
+    return NextResponse.json(services)
   } catch (error: any) {
     return NextResponse.json({ error: error.message }, { status: 500 })
   }

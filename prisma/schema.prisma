@@ -6,9 +6,8 @@ generator client {
 }
 
 datasource db {
-  provider  = "postgresql"
-  url       = env("DATABASE_URL")
-  directUrl = env("DIRECT_URL")
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
 }
 
 model Patient {
@@ -20,16 +19,20 @@ model Patient {
   dateOfBirth   DateTime?
   gender        String?
   notes         String?
+  balance       Float     @default(0) // Balance for deposit/loyalty
   createdAt     DateTime  @default(now())
   updatedAt     DateTime  @updatedAt
   lastMessageAt DateTime  @default(now())
 
-  medicalRecord String? // Stores JSON string of all clinical records
+  medicalRecord String? // Legacy JSON storage for quick compatibility
 
-  doctors Doctor[]
-
+  doctors           Doctor[]
   messages          Message[]
   messengerAccounts MessengerAccount[]
+  appointments      Appointment[]
+  emrRecords        EMRRecord[]
+  labOrders         LabOrder[]
+  invoices          Invoice[]
 }
 
 model Doctor {
@@ -38,9 +41,15 @@ model Doctor {
   lastName          String
   position          String // e.g., "Терапевт", "Кардиолог"
   username          String             @unique
+  room              String?            @default("101")
+  color             String?            @default("#3B82F6")
   patients          Patient[]
   messages          Message[]
   messengerAccounts MessengerAccount[]
+  appointments      Appointment[]
+  emrRecords        EMRRecord[]
+  schedules         DoctorSchedule[]
+  labOrders         LabOrder[]
 }
 
 model Message {
@@ -84,4 +93,142 @@ model Template {
   content   String
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
+}
+
+model Service {
+  id           String        @id @default(cuid())
+  code         String        @unique // e.g., "A01.01.001"
+  name         String
+  price        Float
+  duration     Int           @default(30) // Minutes
+  category     String        @default("Прием врача") // e.g., "Прием", "Анализы", "УЗИ"
+  description  String?
+  createdAt    DateTime      @default(now())
+  appointments Appointment[]
+  labOrders    LabOrder[]
+  invoiceItems InvoiceItem[]
+}
+
+model Appointment {
+  id        String   @id @default(cuid())
+  startTime DateTime
+  endTime   DateTime
+  status    String   @default("BOOKED") // "BOOKED", "CONFIRMED", "WAITING", "IN_PROGRESS", "COMPLETED", "CANCELLED"
+  room      String?
+  notes     String?
+  createdAt DateTime @default(now())
+
+  patient   Patient @relation(fields: [patientId], references: [id])
+  patientId String
+
+  doctor   Doctor @relation(fields: [doctorId], references: [id])
+  doctorId String
+
+  service   Service? @relation(fields: [serviceId], references: [id])
+  serviceId String?
+
+  emrRecord EMRRecord?
+}
+
+model EMRRecord {
+  id            String   @id @default(cuid())
+  dateTime      DateTime @default(now())
+  complaints    String?  // Жалобы
+  anamnesis     String?  // Анамнез
+  objective     String?  // Объективный статус
+  icd10Code     String?  // Код МКБ-10 (e.g. "J00")
+  icd10Name     String?  // Название диагноза
+  treatmentPlan String?  // План лечения и назначения
+  prescriptions String?  // Рецепты/Медикаменты
+  signedBy      String?  // Электронная подпись врача
+
+  patient   Patient @relation(fields: [patientId], references: [id])
+  patientId String
+
+  doctor   Doctor @relation(fields: [doctorId], references: [id])
+  doctorId String
+
+  appointment   Appointment? @relation(fields: [appointmentId], references: [id])
+  appointmentId String?      @unique
+}
+
+model LabOrder {
+  id         String   @id @default(cuid())
+  orderDate  DateTime @default(now())
+  status     String   @default("ORDERED") // "ORDERED", "SAMPLE_COLLECTED", "IN_LAB", "COMPLETED", "CANCELLED"
+  notes      String?
+
+  patient   Patient @relation(fields: [patientId], references: [id])
+  patientId String
+
+  doctor   Doctor @relation(fields: [doctorId], references: [id])
+  doctorId String
+
+  service   Service? @relation(fields: [serviceId], references: [id])
+  serviceId String?
+
+  results LabResult[]
+}
+
+model LabResult {
+  id             String   @id @default(cuid())
+  parameterName  String   // e.g. "Гемоглобин", "Глюкоза"
+  value          String   // e.g. "135"
+  unit           String?  // e.g. "г/л", "ммоль/л"
+  referenceRange String?  // e.g. "120-160"
+  isAbnormal     Boolean  @default(false)
+  notes          String?
+
+  labOrder   LabOrder @relation(fields: [labOrderId], references: [id], onDelete: Cascade)
+  labOrderId String
+}
+
+model Invoice {
+  id            String   @id @default(cuid())
+  invoiceNumber String   @unique
+  totalAmount   Float
+  status        String   @default("UNPAID") // "UNPAID", "PAID", "PARTIALLY_PAID", "CANCELLED"
+  createdAt     DateTime @default(now())
+
+  patient   Patient @relation(fields: [patientId], references: [id])
+  patientId String
+
+  items    InvoiceItem[]
+  payments Payment[]
+}
+
+model InvoiceItem {
+  id          String  @id @default(cuid())
+  serviceName String
+  price       Float
+  quantity    Int     @default(1)
+  amount      Float
+
+  invoice   Invoice @relation(fields: [invoiceId], references: [id], onDelete: Cascade)
+  invoiceId String
+
+  service   Service? @relation(fields: [serviceId], references: [id])
+  serviceId String?
+}
+
+model Payment {
+  id            String   @id @default(cuid())
+  amount        Float
+  paymentMethod String   @default("CASH") // "CASH", "CARD", "DEPOSIT", "INSURANCE"
+  paidAt        DateTime @default(now())
+  notes         String?
+
+  invoice   Invoice @relation(fields: [invoiceId], references: [id], onDelete: Cascade)
+  invoiceId String
+}
+
+model DoctorSchedule {
+  id           String @id @default(cuid())
+  dayOfWeek    Int    // 0 = Sunday, 1 = Monday, ..., 6 = Saturday
+  startTime    String // "09:00"
+  endTime      String // "18:00"
+  slotDuration Int    @default(30)
+
+  doctor   Doctor @relation(fields: [doctorId], references: [id], onDelete: Cascade)
+  doctorId String
 }
