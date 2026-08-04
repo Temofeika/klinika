@@ -23,6 +23,9 @@ export default function Navbar({
   const [reminders, setReminders] = useState<any[]>([])
   const [showReminders, setShowReminders] = useState(false)
 
+  const [notifiedIds, setNotifiedIds] = useState<Set<string>>(new Set())
+  const [activePopup, setActivePopup] = useState<any | null>(null)
+
   useEffect(() => {
     const fetchReminders = async () => {
       try {
@@ -30,13 +33,25 @@ export default function Navbar({
         if (res.ok) {
           const data = await res.json()
           setReminders(data)
+
+          // Check if any task is due right now
+          const now = new Date()
+          for (const task of data) {
+            if (task.plannedAt && new Date(task.plannedAt) <= now && !notifiedIds.has(task.id)) {
+              setActivePopup(task)
+              setNotifiedIds(prev => new Set(prev).add(task.id))
+              // Auto close popup after 10 seconds
+              setTimeout(() => setActivePopup(null), 10000)
+              break; // Show one at a time
+            }
+          }
         }
       } catch (e) {}
     }
     fetchReminders()
     const interval = setInterval(fetchReminders, 60000)
     return () => clearInterval(interval)
-  }, [])
+  }, [notifiedIds])
 
   const handleSearch = (e: React.ChangeEvent<HTMLInputElement>) => {
     const val = e.target.value
@@ -127,6 +142,25 @@ export default function Navbar({
           )}
         </div>
       </div>
+      {/* Popup Notification */}
+      {activePopup && (
+        <div className="fixed bottom-6 right-6 bg-white border border-red-200 rounded-2xl p-4 shadow-2xl shadow-red-500/20 z-50 flex gap-4 items-start w-80 animate-in slide-in-from-bottom-5">
+          <div className="w-10 h-10 rounded-full bg-red-100 text-red-600 flex items-center justify-center flex-shrink-0 mt-1">
+            <Bell size={20} />
+          </div>
+          <div className="flex-1">
+            <h4 className="text-sm font-bold text-slate-900 mb-1">Напоминание!</h4>
+            <p className="text-xs text-slate-600 mb-2">{activePopup.content}</p>
+            <p className="text-[10px] font-bold text-red-500 bg-red-50 px-2 py-1 rounded inline-block">
+              Время пришло
+            </p>
+          </div>
+          <button onClick={() => setActivePopup(null)} className="text-slate-400 hover:text-slate-600 p-1">
+            <Shield size={14} className="opacity-0" /> {/* dummy for spacing */}
+            <span className="absolute top-4 right-4 text-slate-400 hover:text-slate-600">✕</span>
+          </button>
+        </div>
+      )}
     </header>
   )
 }
