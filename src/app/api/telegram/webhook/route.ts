@@ -196,11 +196,53 @@ export async function POST(request: Request) {
         const tempPatientId = currentAccount.patientId
 
         // Check if a patient record with this phone number ALREADY exists in the database
-        const existingPatient = await prisma.patient.findUnique({
-          where: { phone }
+        let patient = await prisma.patient.findFirst({
+        where: { phone: { contains: phone } }
+      })
+
+      if (patient) {
+        // Patient exists, log message as interaction
+        await prisma.interaction.create({
+          data: {
+            patientId: patient.id,
+            type: 'MESSAGE',
+            content: `[Telegram] Контакт подтвержден`,
+            status: 'COMPLETED'
+          }
+        })
+      } else {
+        // Patient does not exist, check if Lead exists
+        let lead = await prisma.lead.findFirst({
+          where: { phone: { contains: phone } }
         })
 
-        if (existingPatient && existingPatient.id !== tempPatientId) {
+        if (!lead) {
+          lead = await prisma.lead.create({
+            data: {
+              name: fromUser?.first_name || 'Неизвестный',
+              phone: phone,
+              source: 'Соцсети',
+              status: 'NEW'
+            }
+          })
+        }
+
+        // Attach message to Lead
+        await prisma.interaction.create({
+          data: {
+            leadId: lead.id,
+            type: 'MESSAGE',
+            content: `[Telegram] Контакт подтвержден`,
+            status: 'COMPLETED'
+          }
+        })
+      }
+
+      const existingPatient = await prisma.patient.findUnique({
+        where: { phone }
+      })
+
+      if (existingPatient && existingPatient.id !== tempPatientId) {
           console.log(`[TELEGRAM MERGE] Patient with phone ${phone} already exists (ID: ${existingPatient.id}). Merging accounts...`)
 
           // Update messenger account to point to the existing patient card
@@ -675,6 +717,33 @@ export async function POST(request: Request) {
     ])
 
     console.log(`[TELEGRAM SUCCESS] Saved message: ${savedMessage[0].id}`)
+    
+    // CRM Integration: Also save as Interaction if applicable
+    if (account.patient.phone && !account.patient.phone.startsWith('+TG-')) {
+      let lead = await prisma.lead.findFirst({
+        where: { phone: { contains: account.patient.phone } }
+      })
+      if (lead) {
+        await prisma.interaction.create({
+          data: {
+            leadId: lead.id,
+            type: 'MESSAGE',
+            content: `[Telegram] ${finalContent}`,
+            status: 'COMPLETED'
+          }
+        })
+      } else {
+        await prisma.interaction.create({
+          data: {
+            patientId: account.patientId,
+            type: 'MESSAGE',
+            content: `[Telegram] ${finalContent}`,
+            status: 'COMPLETED'
+          }
+        })
+      }
+    }
+    
     return NextResponse.json({ success: true, message: savedMessage[0] })
   } catch (error: any) {
     console.error('[TELEGRAM WEBHOOK EXCEPTION]', error.message, error.stack)

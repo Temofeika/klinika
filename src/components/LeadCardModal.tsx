@@ -15,6 +15,7 @@ export default function LeadCardModal({ lead, onClose, onUpdate }: LeadCardModal
   const [activeTab, setActiveTab] = useState('Основное')
   const [newNote, setNewNote] = useState('')
   const [interactionType, setInteractionType] = useState('CALL')
+  const [plannedAt, setPlannedAt] = useState('')
   const [status, setStatus] = useState(lead.status)
   
   const handleAddInteraction = async () => {
@@ -26,7 +27,9 @@ export default function LeadCardModal({ lead, onClose, onUpdate }: LeadCardModal
         body: JSON.stringify({
           leadId: lead.id,
           type: interactionType,
-          content: newNote
+          content: newNote,
+          plannedAt: interactionType === 'TASK' && plannedAt ? plannedAt : null,
+          status: interactionType === 'TASK' ? 'PLANNED' : 'COMPLETED'
         })
       })
       if (res.ok) {
@@ -34,6 +37,7 @@ export default function LeadCardModal({ lead, onClose, onUpdate }: LeadCardModal
         const updatedLead = { ...lead, interactions: [interaction, ...(lead.interactions || [])] }
         onUpdate(updatedLead)
         setNewNote('')
+        setPlannedAt('')
       }
     } catch (e) {
       console.error(e)
@@ -166,6 +170,18 @@ export default function LeadCardModal({ lead, onClose, onUpdate }: LeadCardModal
                 </button>
               </div>
               
+              {interactionType === 'TASK' && (
+                <div className="mb-3">
+                  <label className="block text-xs font-bold text-slate-500 mb-1">Дата и время задачи</label>
+                  <input 
+                    type="datetime-local" 
+                    value={plannedAt}
+                    onChange={e => setPlannedAt(e.target.value)}
+                    className="w-full bg-white border border-slate-200 rounded-xl p-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  />
+                </div>
+              )}
+
               <textarea
                 value={newNote}
                 onChange={e => setNewNote(e.target.value)}
@@ -220,6 +236,15 @@ export default function LeadCardModal({ lead, onClose, onUpdate }: LeadCardModal
                       <time className="text-xs text-slate-400 font-medium">{format(new Date(interaction.createdAt), 'dd.MM.yyyy HH:mm', { locale: ru })}</time>
                     </div>
                     <div className="text-sm text-slate-700 whitespace-pre-wrap">{interaction.content}</div>
+                    
+                    {interaction.audioUrl && (
+                      <div className="mt-3">
+                        <audio controls className="w-full h-8" src={interaction.audioUrl}>
+                          Your browser does not support the audio element.
+                        </audio>
+                      </div>
+                    )}
+                    
                     {interaction.manager && (
                       <div className="mt-3 flex items-center gap-1.5 text-xs text-slate-400">
                         <User size={12} />
