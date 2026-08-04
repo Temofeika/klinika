@@ -180,6 +180,33 @@ export default function PatientMedicalCard({ patient, medical, onUpdate }: Patie
     setShowAllergyModal(false)
   }
 
+  const handleCreateLabOrder = async () => {
+    try {
+      const doctorId = patient.doctors?.[0]?.id;
+      if (!doctorId) {
+        alert("У пациента не назначен лечащий врач. Назначьте врача перед созданием направления.");
+        return;
+      }
+      const res = await fetch('/api/labs', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          patientId: patient.id,
+          doctorId: doctorId,
+          notes: 'Назначено из ЭМК (Протокол осмотра)',
+        })
+      });
+      if (res.ok) {
+        alert('Направление в лабораторию успешно создано!');
+      } else {
+        alert('Ошибка при создании направления.');
+      }
+    } catch (e) {
+      console.error(e);
+      alert('Ошибка при создании направления.');
+    }
+  }
+
   return (
     <div className="flex flex-col h-full bg-slate-50">
       <div className="flex items-center gap-4 p-4 bg-white border-b border-slate-200">
@@ -196,6 +223,11 @@ export default function PatientMedicalCard({ patient, medical, onUpdate }: Patie
           Протокол осмотра (ЭМК)
         </button>
         <div className="flex-1"></div>
+        
+        <button onClick={handleCreateLabOrder} className="flex items-center gap-2 bg-purple-100 hover:bg-purple-200 text-purple-700 px-4 py-2 rounded-lg text-sm font-medium transition-colors border border-purple-200">
+          <Activity size={16} /> Назначить анализы
+        </button>
+
         {medical.discharge?.status === 'COMPLETED' ? (
           <div className="flex items-center gap-2 text-emerald-600 bg-emerald-50 px-3 py-1.5 rounded-lg border border-emerald-200">
             <Check size={16} /> <span className="text-sm font-bold">Выписка готова</span>

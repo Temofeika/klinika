@@ -59,6 +59,38 @@ export async function POST(request: Request) {
       return NextResponse.json(result)
     }
 
+    if (action === 'COMPLETE_ORDER') {
+      const { labOrderId } = body
+      const order = await prisma.labOrder.update({
+        where: { id: labOrderId },
+        data: { status: 'COMPLETED' },
+        include: { results: true, patient: true, doctor: true }
+      })
+
+      // Send a notification if patient has TELEGRAM
+      const tgAccount = await prisma.messengerAccount.findFirst({
+        where: { patientId: order.patientId, platform: 'TELEGRAM' }
+      })
+
+      if (tgAccount) {
+        const tokenSetting = await prisma.systemSetting.findUnique({ where: { key: 'TELEGRAM_BOT_TOKEN' } })
+        const token = tokenSetting?.value
+        
+        if (token) {
+          const abnormalCount = order.results.filter(r => r.isAbnormal).length
+          const msg = `🔬 <b>Ваши результаты анализов готовы!</b>\nПоказателей в норме: ${order.results.length - abnormalCount}\nОтклонений от нормы: ${abnormalCount}\n\nСвяжитесь с врачом (${order.doctor.lastName}) для подробной расшифровки.`
+          
+          await fetch(`https://api.telegram.org/bot${token}/sendMessage`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ chat_id: tgAccount.externalId, text: msg, parse_mode: 'HTML' })
+          }).catch(console.error)
+        }
+      }
+
+      return NextResponse.json(order)
+    }
+
     // Default: Create new Lab Order
     const { patientId, doctorId, serviceId, notes } = body
 

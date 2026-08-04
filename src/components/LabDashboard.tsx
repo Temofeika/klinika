@@ -100,6 +100,24 @@ export default function LabDashboard() {
     }
   }
 
+  const handleCompleteOrder = async () => {
+    if (!selectedOrder) return
+    try {
+      await fetch('/api/labs', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          action: 'COMPLETE_ORDER',
+          labOrderId: selectedOrder.id
+        })
+      })
+      alert('Анализы завершены! Пациент получил уведомление в Telegram.')
+      fetchLabOrders()
+    } catch (e) {
+      console.error(e)
+    }
+  }
+
   return (
     <div className="p-6 grid grid-cols-1 lg:grid-cols-3 gap-6">
       {/* Left List of Orders */}
@@ -171,13 +189,23 @@ export default function LabDashboard() {
                 </p>
               </div>
 
-              <button
-                onClick={() => window.print()}
-                className="flex items-center gap-2 px-3.5 py-2 bg-slate-100 hover:bg-slate-200 text-slate-700 text-xs font-semibold rounded-xl transition"
-              >
-                <Printer className="w-4 h-4" />
-                Печать бланка
-              </button>
+              <div className="flex gap-2">
+                {selectedOrder.status !== 'COMPLETED' && (
+                  <button
+                    onClick={handleCompleteOrder}
+                    className="flex items-center gap-2 px-3.5 py-2 bg-emerald-100 hover:bg-emerald-200 text-emerald-700 text-xs font-semibold rounded-xl transition"
+                  >
+                    Завершить и отправить
+                  </button>
+                )}
+                <button
+                  onClick={() => window.print()}
+                  className="flex items-center gap-2 px-3.5 py-2 bg-slate-100 hover:bg-slate-200 text-slate-700 text-xs font-semibold rounded-xl transition"
+                >
+                  <Printer className="w-4 h-4" />
+                  Печать бланка
+                </button>
+              </div>
             </div>
 
             {/* Results Table */}
