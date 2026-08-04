@@ -72,6 +72,8 @@ export default function PatientMedicalCard({ patient, medical, onUpdate }: Patie
       console.error(e)
     }
   }
+
+  const handleSaveProtocol = () => {
     const updated = {
       ...medical,
       protocol: { complaints, anamnesis, objective }
