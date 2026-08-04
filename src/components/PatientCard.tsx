@@ -869,7 +869,7 @@ export default function PatientCard({ patient: initialPatient, doctorId }: { pat
           ) : activeTab === 'APPS' ? (
             <PatientAppointments medical={medical} onUpdate={handleUpdateMedical} onSendReminder={handleSendReminder} />
           ) : activeTab === 'MEDICAL' ? (
-            <PatientMedicalCard medical={medical} onUpdate={handleUpdateMedical} />
+            <PatientMedicalCard patient={patient} medical={medical} onUpdate={handleUpdateMedical} />
           ) : activeTab === 'BILLING' ? (
             <PatientBilling medical={medical} onUpdate={handleUpdateMedical} />
           ) : activeTab === 'LABS' ? (
