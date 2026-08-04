@@ -14,6 +14,7 @@ import ReportsDashboard from '@/components/ReportsDashboard'
 import WarehouseDashboard from '@/components/WarehouseDashboard'
 import AdminDoctors from '@/components/AdminDoctors'
 import InpatientDashboard from '@/components/InpatientDashboard'
+import PatientDirectory from '@/components/PatientDirectory'
 
 export default function Home() {
   const [activeTab, setActiveTab] = useState<string>('schedule')
@@ -80,7 +81,7 @@ export default function Home() {
               {patient ? (
                 <PatientCard patient={patient} currentRole={currentRole} />
               ) : (
-                <DoctorDashboard
+                <PatientDirectory
                   onSelectPatient={(id) => setSelectedPatientId(id)}
                   onAddPatient={() => setShowAddModal(true)}
                 />
