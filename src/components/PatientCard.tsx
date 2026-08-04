@@ -1,7 +1,7 @@
 'use client'
 
 import React from 'react'
-import { MessageSquare, Send, Phone, User, Calendar, FileText, Share2, Check, CheckCheck, Search, Files, ClipboardList, CreditCard, Microscope, X } from 'lucide-react'
+import { MessageSquare, Send, Phone, User, Calendar, FileText, Share2, Check, CheckCheck, Search, Files, ClipboardList, CreditCard, Microscope, X, BedDouble } from 'lucide-react'
 import { format, formatDistanceToNow } from 'date-fns'
 import { ru } from 'date-fns/locale'
 import PatientDocuments from './PatientDocuments'
@@ -209,6 +209,52 @@ export default function PatientCard({ patient: initialPatient, doctorId, current
     } catch (err: any) {
       console.error(err)
       alert('Ошибка соединения с сервером')
+    }
+  }
+
+  // Inpatient Admit States
+  const [showAdmitModal, setShowAdmitModal] = React.useState(false)
+  const [departments, setDepartments] = React.useState<any[]>([])
+  const [admitForm, setAdmitForm] = React.useState({
+    doctorId: '',
+    bedId: '',
+    diagnosis: '',
+    notes: ''
+  })
+  const [admitting, setAdmitting] = React.useState(false)
+
+  const handleOpenAdmit = async () => {
+    setShowAdmitModal(true)
+    try {
+      const res = await fetch('/api/inpatient/wards')
+      const data = await res.json()
+      if (Array.isArray(data)) setDepartments(data)
+    } catch(e) { console.error(e) }
+  }
+
+  const handleAdmit = async (e: React.FormEvent) => {
+    e.preventDefault()
+    setAdmitting(true)
+    try {
+      const res = await fetch('/api/inpatient/hospitalizations', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          patientId: patient.id,
+          ...admitForm
+        })
+      })
+      if (res.ok) {
+        setShowAdmitModal(false)
+        alert('Пациент успешно госпитализирован')
+      } else {
+        const err = await res.json()
+        alert('Ошибка: ' + (err.error || 'Не удалось госпитализировать'))
+      }
+    } catch(e) {
+      console.error(e)
+    } finally {
+      setAdmitting(false)
     }
   }
 
@@ -625,7 +671,12 @@ export default function PatientCard({ patient: initialPatient, doctorId, current
               </select>
             )}
           </div>
-          <button className="btn-primary"><Share2 size={18} /> Экспорт</button>
+          <div style={{ display: 'flex', gap: '0.5rem' }}>
+            <button className="btn-primary" style={{ background: '#4f46e5' }} onClick={handleOpenAdmit}>
+              <BedDouble size={18} /> Госпитализация
+            </button>
+            <button className="btn-primary"><Share2 size={18} /> Экспорт</button>
+          </div>
         </div>
       </div>
 
@@ -2120,6 +2171,53 @@ export default function PatientCard({ patient: initialPatient, doctorId, current
           to { transform: scale(1); opacity: 1; }
         }
       `}</style>
+      {/* Admit Modal */}
+      {showAdmitModal && (
+        <div className="fixed inset-0 bg-slate-900/50 backdrop-blur-sm z-[100] flex items-center justify-center p-4" style={{ position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, backgroundColor: 'rgba(15, 23, 42, 0.5)', backdropFilter: 'blur(4px)', zIndex: 1000, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+          <div className="bg-white rounded-2xl max-w-md w-full p-6 shadow-2xl" style={{ backgroundColor: 'white', borderRadius: '1rem', width: '100%', maxWidth: '28rem', padding: '1.5rem', boxShadow: '0 25px 50px -12px rgba(0, 0, 0, 0.25)' }}>
+            <h3 className="font-bold text-lg text-slate-900 border-b border-slate-100 pb-3 mb-4 flex items-center gap-2" style={{ fontWeight: 700, fontSize: '1.125rem', paddingBottom: '0.75rem', borderBottom: '1px solid #f1f5f9', marginBottom: '1rem', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+              <BedDouble className="text-indigo-600" />
+              Госпитализация пациента
+            </h3>
+            <form onSubmit={handleAdmit} className="space-y-4" style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
+              <div>
+                <label className="block text-xs font-semibold text-slate-700 mb-1" style={{ display: 'block', fontSize: '0.75rem', fontWeight: 600, color: '#334155', marginBottom: '0.25rem' }}>Отделение и Палата</label>
+                <select required value={admitForm.bedId} onChange={e => setAdmitForm({...admitForm, bedId: e.target.value})} className="w-full border border-slate-300 rounded-xl px-3 py-2 text-sm focus:ring-2 focus:ring-indigo-500 outline-none" style={{ width: '100%', border: '1px solid #cbd5e1', borderRadius: '0.75rem', padding: '0.5rem 0.75rem', fontSize: '0.875rem' }}>
+                  <option value="">-- Выберите свободную койку --</option>
+                  {departments.map(dept => (
+                    <optgroup key={dept.id} label={dept.name}>
+                      {dept.wards.map((w: any) => (
+                        w.beds.map((b: any) => (
+                          <option key={b.id} value={b.id} disabled={b.status !== 'AVAILABLE'}>
+                            {w.number} - {b.number} {b.status !== 'AVAILABLE' ? '(Занята)' : ''}
+                          </option>
+                        ))
+                      ))}
+                    </optgroup>
+                  ))}
+                </select>
+              </div>
+              <div>
+                <label className="block text-xs font-semibold text-slate-700 mb-1" style={{ display: 'block', fontSize: '0.75rem', fontWeight: 600, color: '#334155', marginBottom: '0.25rem' }}>Лечащий врач (Стационар)</label>
+                <select required value={admitForm.doctorId} onChange={e => setAdmitForm({...admitForm, doctorId: e.target.value})} className="w-full border border-slate-300 rounded-xl px-3 py-2 text-sm focus:ring-2 focus:ring-indigo-500 outline-none" style={{ width: '100%', border: '1px solid #cbd5e1', borderRadius: '0.75rem', padding: '0.5rem 0.75rem', fontSize: '0.875rem' }}>
+                  <option value="">-- Выберите врача --</option>
+                  {doctorsList.map(d => <option key={d.id} value={d.id}>{d.lastName} {d.firstName}</option>)}
+                </select>
+              </div>
+              <div>
+                <label className="block text-xs font-semibold text-slate-700 mb-1" style={{ display: 'block', fontSize: '0.75rem', fontWeight: 600, color: '#334155', marginBottom: '0.25rem' }}>Диагноз при поступлении</label>
+                <input type="text" required value={admitForm.diagnosis} onChange={e => setAdmitForm({...admitForm, diagnosis: e.target.value})} className="w-full border border-slate-300 rounded-xl px-3 py-2 text-sm focus:ring-2 focus:ring-indigo-500 outline-none" placeholder="Укажите предварительный диагноз" style={{ width: '100%', border: '1px solid #cbd5e1', borderRadius: '0.75rem', padding: '0.5rem 0.75rem', fontSize: '0.875rem' }} />
+              </div>
+              <div className="flex justify-end gap-3 pt-4 border-t border-slate-100 mt-2" style={{ display: 'flex', justifyContent: 'flex-end', gap: '0.75rem', paddingTop: '1rem', borderTop: '1px solid #f1f5f9', marginTop: '0.5rem' }}>
+                <button type="button" onClick={() => setShowAdmitModal(false)} className="px-4 py-2 border border-slate-200 text-slate-600 rounded-xl text-sm font-semibold hover:bg-slate-50" style={{ padding: '0.5rem 1rem', border: '1px solid #e2e8f0', color: '#475569', borderRadius: '0.75rem', fontSize: '0.875rem', fontWeight: 600, background: 'transparent', cursor: 'pointer' }}>Отмена</button>
+                <button type="submit" disabled={admitting} className="px-4 py-2 bg-indigo-600 hover:bg-indigo-700 text-white rounded-xl text-sm font-bold shadow" style={{ padding: '0.5rem 1rem', background: '#4f46e5', color: 'white', borderRadius: '0.75rem', fontSize: '0.875rem', fontWeight: 700, border: 'none', cursor: admitting ? 'not-allowed' : 'pointer', opacity: admitting ? 0.7 : 1 }}>
+                  {admitting ? 'Сохранение...' : 'Госпитализировать'}
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
     </div>
   )
 }
