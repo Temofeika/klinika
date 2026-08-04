@@ -13,7 +13,8 @@ import {
   PieChart,
   Package,
   BedDouble,
-  Banknote
+  Banknote,
+  Target
 } from 'lucide-react'
 
 interface SidebarProps {
@@ -26,6 +27,7 @@ export default function Sidebar({ activeTab, setActiveTab, unreadCount = 0 }: Si
   const navItems = [
     { id: 'schedule', label: 'Расписание и Запись', icon: Calendar, color: 'text-blue-500' },
     { id: 'patients', label: 'Пациенты и ЭМК', icon: Users, color: 'text-emerald-500' },
+    { id: 'crm', label: 'CRM / Воронка', icon: Target, color: 'text-rose-600' },
     { id: 'labs', label: 'Лаборатория (ЛИС)', icon: TestTube2, color: 'text-purple-500' },
     { id: 'billing', label: 'Касса и Счета', icon: CreditCard, color: 'text-amber-500' },
     { id: 'warehouse', label: 'Склад', icon: Package, color: 'text-orange-500' },

@@ -36,6 +36,7 @@ model Patient {
   invoices          Invoice[]
   hospitalizations  Hospitalization[]
   dentalRecords     DentalRecord[]
+  interactions      Interaction[]
 }
 
 model Doctor {
@@ -58,6 +59,8 @@ model Doctor {
   invoiceItems      InvoiceItem[]
   timesheets        Timesheet[]
   payrollRecords    PayrollRecord[]
+  leads             Lead[]
+  interactions      Interaction[]
 }
 
 model Message {
@@ -412,4 +415,40 @@ model PayrollRecord {
   notes       String?
   createdAt   DateTime @default(now())
   updatedAt   DateTime @default(now()) @updatedAt
+}
+
+// ==========================================
+// Phase 15: CRM & Leads
+// ==========================================
+
+model Lead {
+  id             String        @id @default(uuid())
+  name           String
+  phone          String
+  source         String?       @default("Входящий звонок") // "Промо", "Соцсети", "Рекомендация"
+  status         String        @default("NEW") // "NEW", "CONTACTED", "APPOINTMENT_SET", "SUCCESS", "LOST"
+  expectedAmount Float         @default(0)
+  managerId      String?
+  manager        Doctor?       @relation(fields: [managerId], references: [id])
+  createdAt      DateTime      @default(now())
+  updatedAt      DateTime      @default(now()) @updatedAt
+
+  interactions   Interaction[]
+}
+
+model Interaction {
+  id          String    @id @default(uuid())
+  leadId      String?
+  lead        Lead?     @relation(fields: [leadId], references: [id], onDelete: Cascade)
+  patientId   String?
+  patient     Patient?  @relation(fields: [patientId], references: [id], onDelete: Cascade)
+  managerId   String?
+  manager     Doctor?   @relation(fields: [managerId], references: [id])
+  
+  type        String    @default("CALL") // "CALL", "MESSAGE", "MEETING", "TASK", "NOTE"
+  content     String
+  status      String    @default("COMPLETED") // "PLANNED", "COMPLETED"
+  plannedAt   DateTime? // If it's a scheduled task
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @default(now()) @updatedAt
 }

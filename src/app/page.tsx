@@ -16,6 +16,7 @@ import AdminDoctors from '@/components/AdminDoctors'
 import InpatientDashboard from '@/components/InpatientDashboard'
 import PatientDirectory from '@/components/PatientDirectory'
 import PayrollDashboard from '@/components/PayrollDashboard'
+import CrmDashboard from '@/components/CrmDashboard'
 
 export default function Home() {
   const [activeTab, setActiveTab] = useState<string>('schedule')
@@ -121,6 +122,10 @@ export default function Home() {
 
           {activeTab === 'payroll' && (
             <PayrollDashboard />
+          )}
+
+          {activeTab === 'crm' && (
+            <CrmDashboard />
           )}
 
           {activeTab === 'admin' && (
