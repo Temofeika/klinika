@@ -394,6 +394,7 @@ export default function ScheduleGrid({ onSelectPatient }: { onSelectPatient: (id
                     )
                   })}
                 </div>
+                )
               })}
             </div>
           </div>
