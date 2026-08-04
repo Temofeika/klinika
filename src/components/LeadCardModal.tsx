@@ -20,7 +20,10 @@ export default function LeadCardModal({ lead, onClose, onUpdate }: LeadCardModal
   
   const handleAddInteraction = async () => {
     // ... logic for interactions
-    if (!newNote.trim()) return
+    if (!newNote.trim()) {
+      alert('Пожалуйста, введите результат взаимодействия или описание задачи')
+      return
+    }
     try {
       const res = await fetch('/api/crm/interactions', {
         method: 'POST',
@@ -174,7 +177,7 @@ export default function LeadCardModal({ lead, onClose, onUpdate }: LeadCardModal
               </div>
 
               <div className="pt-4">
-                 <button className="w-full py-3 bg-emerald-600 hover:bg-emerald-500 text-white font-bold rounded-xl shadow-md shadow-emerald-500/20 transition-all flex justify-center items-center gap-2">
+                 <button onClick={handleConvertToPatient} className="w-full py-3 bg-emerald-600 hover:bg-emerald-500 text-white font-bold rounded-xl shadow-md shadow-emerald-500/20 transition-all flex justify-center items-center gap-2">
                    <User size={18} />
                    Конвертировать в Пациента
                  </button>
