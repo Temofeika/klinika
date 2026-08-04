@@ -27,6 +27,7 @@ export default function Sidebar({ activeTab, setActiveTab, unreadCount = 0 }: Si
     { id: 'billing', label: 'Касса и Счета', icon: CreditCard, color: 'text-amber-500' },
     { id: 'chat', label: 'Сообщения / Мессенджеры', icon: MessageSquare, color: 'text-sky-500', badge: unreadCount },
     { id: 'admin', label: 'Администрирование', icon: Settings, color: 'text-slate-400' },
+    { id: 'reports', label: 'Отчеты и Аналитика', icon: PieChart, color: 'text-rose-500' },
   ]
 
   return (
