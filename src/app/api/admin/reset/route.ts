@@ -15,6 +15,11 @@ export async function GET(req: Request) {
     await prisma.invoiceItem.deleteMany({})
     await prisma.invoice.deleteMany({})
     await prisma.messengerAccount.deleteMany({})
+    await prisma.labResult.deleteMany({})
+    await prisma.labOrder.deleteMany({})
+    await prisma.dentalRecord.deleteMany({})
+    await prisma.hospitalization.deleteMany({})
+    // Do not delete bed, ward, department (structural data)
     await prisma.patient.deleteMany({})
 
     return NextResponse.json({ success: true, message: 'Тестовые данные успешно удалены!' })
