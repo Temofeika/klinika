@@ -15,11 +15,27 @@ export default function DoctorDashboard({ activeDoctor, onSelectPatient, onAddPa
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    if (!activeDoctor?.id) return;
-    
     const fetchStats = async () => {
       try {
-        const res = await fetch(`/api/dashboard?doctorId=${activeDoctor.id}`);
+        let docId = activeDoctor?.id;
+        
+        // Fallback: If no doctor passed, fetch the first available doctor
+        if (!docId) {
+          const docRes = await fetch('/api/doctors');
+          if (docRes.ok) {
+             const docs = await docRes.json();
+             if (docs && docs.length > 0) {
+               docId = docs[0].id;
+             }
+          }
+        }
+        
+        if (!docId) {
+           setLoading(false);
+           return;
+        }
+
+        const res = await fetch(`/api/dashboard?doctorId=${docId}`);
         const data = await res.json();
         setStats(data);
       } catch (e) {
