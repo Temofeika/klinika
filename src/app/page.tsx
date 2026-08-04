@@ -9,6 +9,8 @@ import DoctorDashboard from '@/components/DoctorDashboard'
 import LabDashboard from '@/components/LabDashboard'
 import BillingDashboard from '@/components/BillingDashboard'
 import AddPatientModal from '@/components/AddPatientModal'
+import AdminServices from '@/components/AdminServices'
+import ReportsDashboard from '@/components/ReportsDashboard'
 
 export default function Home() {
   const [activeTab, setActiveTab] = useState<string>('schedule')
@@ -91,6 +93,10 @@ export default function Home() {
             <BillingDashboard />
           )}
 
+          {activeTab === 'reports' && (
+            <ReportsDashboard />
+          )}
+
           {activeTab === 'chat' && (
             <div className="p-6">
               <DoctorDashboard
@@ -101,25 +107,27 @@ export default function Home() {
           )}
 
           {activeTab === 'admin' && (
-            <div className="p-8 max-w-4xl mx-auto space-y-6">
+            <div className="p-8 max-w-5xl mx-auto space-y-6">
               <div className="bg-white p-6 rounded-2xl border border-slate-200 shadow-sm space-y-4">
                 <h2 className="text-xl font-bold text-slate-900">Администрирование МИС "Клиника"</h2>
                 <p className="text-sm text-slate-500">
-                  Управление правами доступа, ролями сотрудников, филиалами и интеграциями МИС (Аналог Medialog 8.10.8).
+                  Управление правами доступа, ролями сотрудников, справочниками и интеграциями МИС (Аналог Medialog 8.10.8).
                 </p>
 
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 pt-4 border-t border-slate-100">
                   <div className="p-4 bg-slate-50 rounded-xl border border-slate-200">
                     <span className="font-bold text-sm text-slate-800">Статус СУБД</span>
-                    <p className="text-xs text-emerald-600 font-semibold mt-1">● Подключено (Prisma / SQLite / Postgres)</p>
+                    <p className="text-xs text-emerald-600 font-semibold mt-1">● Подключено (Prisma / Postgres)</p>
                   </div>
 
                   <div className="p-4 bg-slate-50 rounded-xl border border-slate-200">
-                    <span className="font-bold text-sm text-slate-800">Электронная подпись (ЭП)</span>
-                    <p className="text-xs text-blue-600 font-semibold mt-1">● Schematron / XSD Валидатор включен</p>
+                    <span className="font-bold text-sm text-slate-800">Интеграция Telegram</span>
+                    <p className="text-xs text-blue-600 font-semibold mt-1">● Webhook Активен</p>
                   </div>
                 </div>
               </div>
+
+              <AdminServices />
             </div>
           )}
         </main>

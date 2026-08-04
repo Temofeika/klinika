@@ -9,7 +9,8 @@ import {
   MessageSquare, 
   Settings, 
   Activity,
-  Stethoscope
+  Stethoscope,
+  PieChart
 } from 'lucide-react'
 
 interface SidebarProps {
