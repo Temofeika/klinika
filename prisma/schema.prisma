@@ -34,6 +34,7 @@ model Patient {
   emrRecords        EMRRecord[]
   labOrders         LabOrder[]
   invoices          Invoice[]
+  hospitalizations  Hospitalization[]
 }
 
 model Doctor {
@@ -51,6 +52,7 @@ model Doctor {
   emrRecords        EMRRecord[]
   schedules         DoctorSchedule[]
   labOrders         LabOrder[]
+  hospitalizations  Hospitalization[]
 }
 
 model Message {
@@ -295,4 +297,52 @@ model ServiceInventory {
   itemId      String
 
   @@unique([serviceId, itemId])
+}
+
+// ==========================================
+// Phase 12: Inpatient Module (Стационар)
+// ==========================================
+
+model Department {
+  id        String   @id @default(cuid())
+  name      String   // e.g., "Хирургическое отделение"
+  type      String   @default("GENERAL")
+  wards     Ward[]
+}
+
+model Ward {
+  id           String     @id @default(cuid())
+  number       String     // e.g., "Палата 201"
+  type         String     @default("GENERAL") // "GENERAL", "ICU"
+  department   Department @relation(fields: [departmentId], references: [id], onDelete: Cascade)
+  departmentId String
+  beds         Bed[]
+}
+
+model Bed {
+  id           String     @id @default(cuid())
+  number       String     // e.g., "Койка 1"
+  status       String     @default("AVAILABLE") // "AVAILABLE", "OCCUPIED", "MAINTENANCE"
+  ward         Ward       @relation(fields: [wardId], references: [id], onDelete: Cascade)
+  wardId       String
+  
+  hospitalizations Hospitalization[]
+}
+
+model Hospitalization {
+  id          String    @id @default(cuid())
+  startDate   DateTime  @default(now())
+  endDate     DateTime?
+  diagnosis   String?
+  status      String    @default("ADMITTED") // "ADMITTED", "DISCHARGED", "TRANSFERRED"
+  notes       String?
+
+  patient     Patient   @relation(fields: [patientId], references: [id])
+  patientId   String
+
+  doctor      Doctor    @relation(fields: [doctorId], references: [id])
+  doctorId    String
+
+  bed         Bed       @relation(fields: [bedId], references: [id])
+  bedId       String
 }

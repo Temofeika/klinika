@@ -11,7 +11,8 @@ import {
   Activity,
   Stethoscope,
   PieChart,
-  Package
+  Package,
+  BedDouble
 } from 'lucide-react'
 
 interface SidebarProps {
@@ -27,6 +28,7 @@ export default function Sidebar({ activeTab, setActiveTab, unreadCount = 0 }: Si
     { id: 'labs', label: 'Лаборатория (ЛИС)', icon: TestTube2, color: 'text-purple-500' },
     { id: 'billing', label: 'Касса и Счета', icon: CreditCard, color: 'text-amber-500' },
     { id: 'warehouse', label: 'Склад', icon: Package, color: 'text-orange-500' },
+    { id: 'inpatient', label: 'Стационар', icon: BedDouble, color: 'text-indigo-500' },
     { id: 'chat', label: 'Сообщения / Мессенджеры', icon: MessageSquare, color: 'text-sky-500', badge: unreadCount },
     { id: 'admin', label: 'Администрирование', icon: Settings, color: 'text-slate-400' },
     { id: 'reports', label: 'Отчеты и Аналитика', icon: PieChart, color: 'text-rose-500' },

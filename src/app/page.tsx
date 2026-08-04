@@ -13,6 +13,7 @@ import AdminServices from '@/components/AdminServices'
 import ReportsDashboard from '@/components/ReportsDashboard'
 import WarehouseDashboard from '@/components/WarehouseDashboard'
 import AdminDoctors from '@/components/AdminDoctors'
+import InpatientDashboard from '@/components/InpatientDashboard'
 
 export default function Home() {
   const [activeTab, setActiveTab] = useState<string>('schedule')
@@ -93,6 +94,10 @@ export default function Home() {
 
           {activeTab === 'billing' && (
             <BillingDashboard />
+          )}
+
+          {activeTab === 'inpatient' && (
+            <InpatientDashboard />
           )}
 
           {activeTab === 'reports' && (
