@@ -1,8 +1,7 @@
 'use client'
 
-import React, { useState, useMemo } from 'react'
+import React, { useState, useEffect } from 'react'
 import { Activity, Pill, AlertTriangle, ClipboardList, Plus, History, X, FileText, Send, Check } from 'lucide-react'
-import mkb10 from '../data/mkb10.json'
 
 interface PatientMedicalCardProps {
   patient: any;
@@ -28,10 +27,14 @@ export default function PatientMedicalCard({ patient, medical, onUpdate }: Patie
   const [anamnesis, setAnamnesis] = useState(medical.protocol?.anamnesis || '')
   const [objective, setObjective] = useState(medical.protocol?.objective || '')
   
+  // Templates state
+  const [templates, setTemplates] = useState<any[]>([])
+
   // MKB-10 Autocomplete State
   const [diagSearch, setDiagSearch] = useState('')
   const [diagStatus, setDiagStatus] = useState('ACTIVE')
   const [showAutocomplete, setShowAutocomplete] = useState(false)
+  const [filteredMkb, setFilteredMkb] = useState<any[]>([])
 
   const [medName, setMedName] = useState('')
   const [medDosage, setMedDosage] = useState('')
@@ -40,15 +43,35 @@ export default function PatientMedicalCard({ patient, medical, onUpdate }: Patie
   const [allergyName, setAllergyName] = useState('')
   const [allergySeverity, setAllergySeverity] = useState('LOW')
 
-  const filteredMkb = useMemo(() => {
-    if (!diagSearch) return []
-    return mkb10.filter(item => 
-      item.name.toLowerCase().includes(diagSearch.toLowerCase()) || 
-      item.code.toLowerCase().includes(diagSearch.toLowerCase())
-    ).slice(0, 5)
+  useEffect(() => {
+    fetch('/api/templates')
+      .then(res => res.json())
+      .then(data => setTemplates(Array.isArray(data) ? data : []))
+  }, [])
+
+  useEffect(() => {
+    if (!diagSearch || diagSearch.length < 2) {
+      setFilteredMkb([])
+      return
+    }
+    const delayDebounceFn = setTimeout(() => {
+      fetch(`/api/diagnosis?q=${encodeURIComponent(diagSearch)}`)
+        .then(res => res.json())
+        .then(data => setFilteredMkb(Array.isArray(data) ? data : []))
+    }, 300)
+    return () => clearTimeout(delayDebounceFn)
   }, [diagSearch])
 
-  const handleSaveProtocol = () => {
+  const applyTemplate = (contentStr: string) => {
+    try {
+      const parsed = JSON.parse(contentStr)
+      if (parsed.complaints) setComplaints(parsed.complaints)
+      if (parsed.anamnesis) setAnamnesis(parsed.anamnesis)
+      if (parsed.objective) setObjective(parsed.objective)
+    } catch(e) {
+      console.error(e)
+    }
+  }
     const updated = {
       ...medical,
       protocol: { complaints, anamnesis, objective }
@@ -334,7 +357,26 @@ export default function PatientMedicalCard({ patient, medical, onUpdate }: Patie
 
         {activeTab === 'protocol' && (
           <div className="max-w-4xl mx-auto space-y-6 bg-white p-8 rounded-2xl border border-slate-200 shadow-sm">
-            <h2 className="text-2xl font-bold text-slate-800 mb-6 font-outfit">Протокол осмотра</h2>
+            <div className="flex items-center justify-between mb-6 border-b border-slate-100 pb-4">
+              <h2 className="text-2xl font-bold text-slate-800 font-outfit">Протокол осмотра</h2>
+              
+              <div className="flex items-center gap-2">
+                <span className="text-sm font-semibold text-slate-500">Шаблон:</span>
+                <select 
+                  className="border border-slate-300 rounded-xl px-3 py-1.5 text-sm outline-none focus:ring-2 focus:ring-blue-500"
+                  onChange={(e) => {
+                    const tmpl = templates.find(t => t.id === e.target.value)
+                    if (tmpl) applyTemplate(tmpl.content)
+                  }}
+                  defaultValue=""
+                >
+                  <option value="" disabled>-- Выберите шаблон --</option>
+                  {templates.map(t => (
+                    <option key={t.id} value={t.id}>{t.name}</option>
+                  ))}
+                </select>
+              </div>
+            </div>
             
             <div className="space-y-4">
               <div>

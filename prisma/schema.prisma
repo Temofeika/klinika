@@ -108,6 +108,7 @@ model Service {
   appointments Appointment[]
   labOrders    LabOrder[]
   invoiceItems InvoiceItem[]
+  inventoryItems ServiceInventory[]
 }
 
 model Appointment {
@@ -232,4 +233,66 @@ model DoctorSchedule {
 
   doctor   Doctor @relation(fields: [doctorId], references: [id], onDelete: Cascade)
   doctorId String
+}
+
+// ==========================================
+// Phase 8: Catalogs & Templates
+// ==========================================
+
+model DiagnosisDictionary {
+  id        String   @id @default(cuid())
+  code      String   @unique // e.g. "J00"
+  name      String   // e.g. "Острый назофарингит (насморк)"
+  createdAt DateTime @default(now())
+}
+
+model MedicalTemplate {
+  id        String   @id @default(cuid())
+  name      String   // e.g. "Первичный осмотр терапевта"
+  content   String   // JSON string of default complaints, anamnesis, objective
+  doctorId  String?  // Optional: if null, available to all doctors
+  createdAt DateTime @default(now())
+}
+
+// ==========================================
+// Phase 10: Warehouse & Inventory
+// ==========================================
+
+model InventoryItem {
+  id          String   @id @default(cuid())
+  sku         String   @unique // Stock Keeping Unit
+  name        String
+  category    String   // "Медикаменты", "Расходники"
+  unit        String   // "шт", "упак", "мл"
+  quantity    Float    @default(0)
+  minQuantity Float    @default(10) // Threshold for low stock warning
+  createdAt   DateTime @default(now())
+
+  transactions      InventoryTransaction[]
+  serviceInventories ServiceInventory[]
+}
+
+model InventoryTransaction {
+  id          String   @id @default(cuid())
+  type        String   // "IN" (Приход), "OUT" (Списание), "AUTO_OUT" (Автосписание)
+  quantity    Float
+  date        DateTime @default(now())
+  notes       String?
+  
+  item        InventoryItem @relation(fields: [itemId], references: [id], onDelete: Cascade)
+  itemId      String
+}
+
+// Maps Service to required InventoryItems (e.g., Blood Test requires 1 syringe, 1 tube)
+model ServiceInventory {
+  id          String   @id @default(cuid())
+  quantity    Float    // How many units to deduct when service is provided
+
+  service     Service  @relation(fields: [serviceId], references: [id], onDelete: Cascade)
+  serviceId   String
+
+  item        InventoryItem @relation(fields: [itemId], references: [id], onDelete: Cascade)
+  itemId      String
+
+  @@unique([serviceId, itemId])
 }

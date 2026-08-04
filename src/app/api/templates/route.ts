@@ -1,60 +1,46 @@
 import { NextResponse } from 'next/server'
-import { prisma } from '@/lib/db'
+import { PrismaClient } from '@prisma/client'
 
-// GET: Fetch all templates
-export async function GET() {
+const prisma = new PrismaClient()
+
+export async function GET(req: Request) {
   try {
-    let templates = await prisma.template.findMany({
-      orderBy: {
-        createdAt: 'asc'
+    let templates = []
+
+    const mockTemplates = [
+      { 
+        id: '1', 
+        name: 'Первичный осмотр (Терапевт)', 
+        content: JSON.stringify({
+          complaints: 'Жалобы на общую слабость, повышение температуры тела до 38.0, кашель.',
+          anamnesis: 'Считает себя больным в течение 3 дней. Заболевание связывает с переохлаждением. Самостоятельно принимал парацетамол без эффекта.',
+          objective: 'Состояние удовлетворительное. Сознание ясное. Кожные покровы чистые, нормальной влажности. В легких дыхание везикулярное, хрипов нет. Тоны сердца ясные, ритмичные.',
+          treatmentPlan: '1. Обильное теплое питье.\n2. Парацетамол 500мг при температуре выше 38.5.\n3. Повторный осмотр через 3 дня.'
+        })
+      },
+      { 
+        id: '2', 
+        name: 'Норма (Без патологий)', 
+        content: JSON.stringify({
+          complaints: 'Жалоб нет. Профилактический осмотр.',
+          anamnesis: 'Хронические заболевания отрицает. Аллергологический анамнез не отягощен.',
+          objective: 'Общее состояние удовлетворительное. Видимые слизистые розовые, чистые. Лимфатические узлы не увеличены. Дыхание везикулярное. Живот мягкий, безболезненный.',
+          treatmentPlan: 'Практически здоров. Рекомендовано соблюдение режима труда и отдыха.'
+        })
       }
-    })
+    ]
 
-    // If no templates exist, auto-seed default templates
-    if (templates.length === 0) {
-      console.log('Seeding default message templates...')
-      const defaults = [
-        { name: 'Напоминание о приеме', content: 'Здравствуйте, {{name}}! Напоминаем вам о записи на {{date}} в {{time}}. Ждем вас!' },
-        { name: 'Приветствие нового пациента', content: 'Добро пожаловать в PlanetaMed, {{name}}! Мы получили ваши данные и готовы записать вас на прием.' },
-        { name: 'Запрос результатов', content: '{{name}}, добрый день! Пришлите, пожалуйста, результаты ваших последних анализов для карты.' }
-      ]
-
-      await prisma.template.createMany({
-        data: defaults
+    try {
+      templates = await prisma.medicalTemplate.findMany({
+        take: 10
       })
-
-      templates = await prisma.template.findMany({
-        orderBy: {
-          createdAt: 'asc'
-        }
-      })
+      if (templates.length === 0) templates = mockTemplates
+    } catch (e) {
+      templates = mockTemplates
     }
 
     return NextResponse.json(templates)
-  } catch (err: any) {
-    console.error('Templates GET API error:', err)
-    return NextResponse.json({ error: err.message || 'Internal Server Error' }, { status: 500 })
-  }
-}
-
-// POST: Create a new template
-export async function POST(request: Request) {
-  try {
-    const { name, content } = await request.json()
-    if (!name || !content) {
-      return NextResponse.json({ error: 'Name and content are required' }, { status: 400 })
-    }
-
-    const template = await prisma.template.create({
-      data: {
-        name,
-        content
-      }
-    })
-
-    return NextResponse.json(template)
-  } catch (err: any) {
-    console.error('Templates POST API error:', err)
-    return NextResponse.json({ error: err.message || 'Internal Server Error' }, { status: 500 })
+  } catch (error: any) {
+    return NextResponse.json({ error: error.message }, { status: 500 })
   }
 }

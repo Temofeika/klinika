@@ -11,6 +11,7 @@ import BillingDashboard from '@/components/BillingDashboard'
 import AddPatientModal from '@/components/AddPatientModal'
 import AdminServices from '@/components/AdminServices'
 import ReportsDashboard from '@/components/ReportsDashboard'
+import WarehouseDashboard from '@/components/WarehouseDashboard'
 
 export default function Home() {
   const [activeTab, setActiveTab] = useState<string>('schedule')
@@ -104,6 +105,10 @@ export default function Home() {
                 onAddPatient={() => setShowAddModal(true)}
               />
             </div>
+          )}
+
+          {activeTab === 'warehouse' && (
+            <WarehouseDashboard />
           )}
 
           {activeTab === 'admin' && (
