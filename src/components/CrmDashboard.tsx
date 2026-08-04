@@ -1,7 +1,7 @@
 'use client'
 
 import React, { useState, useEffect } from 'react'
-import { Filter, Search, Plus, User, Phone, PhoneCall } from 'lucide-react'
+import { Filter, Search, Plus, User, Phone, PhoneCall, X } from 'lucide-react'
 import LeadCardModal from './LeadCardModal'
 
 const STATUSES = [
