@@ -35,6 +35,7 @@ model Patient {
   labOrders         LabOrder[]
   invoices          Invoice[]
   hospitalizations  Hospitalization[]
+  dentalRecords     DentalRecord[]
 }
 
 model Doctor {
