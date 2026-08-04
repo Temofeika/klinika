@@ -309,7 +309,7 @@ model Department {
   name      String   @unique
   wards     Ward[]
   createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
+  updatedAt DateTime @default(now()) @updatedAt
 }
 
 model Ward {
@@ -319,7 +319,7 @@ model Ward {
   department   Department  @relation(fields: [departmentId], references: [id], onDelete: Cascade)
   beds         Bed[]
   createdAt    DateTime    @default(now())
-  updatedAt    DateTime    @updatedAt
+  updatedAt    DateTime    @default(now()) @updatedAt
 }
 
 model Bed {
@@ -330,7 +330,7 @@ model Bed {
   status           String            @default("AVAILABLE") // AVAILABLE, OCCUPIED, CLEANING
   hospitalizations Hospitalization[]
   createdAt        DateTime          @default(now())
-  updatedAt        DateTime          @updatedAt
+  updatedAt        DateTime          @default(now()) @updatedAt
 }
 
 model Hospitalization {
@@ -348,7 +348,7 @@ model Hospitalization {
   dischargeNotes String?
   observations   Observation[]
   createdAt      DateTime      @default(now())
-  updatedAt      DateTime      @updatedAt
+  updatedAt      DateTime      @default(now()) @updatedAt
 }
 
 model Observation {
@@ -370,7 +370,7 @@ model DentalRecord {
   toothNumber  Int
   status       String   @default("HEALTHY") // HEALTHY, CARIES, FILLED, IMPLANT, EXTRACTED, CROWN
   notes        String?
-  updatedAt    DateTime @updatedAt
+  updatedAt    DateTime @default(now()) @updatedAt
   createdAt    DateTime @default(now())
 
   @@unique([patientId, toothNumber])
