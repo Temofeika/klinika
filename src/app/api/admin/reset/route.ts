@@ -19,6 +19,12 @@ export async function GET(req: Request) {
     await prisma.labOrder.deleteMany({})
     await prisma.dentalRecord.deleteMany({})
     await prisma.hospitalization.deleteMany({})
+    
+    // Reset all beds to AVAILABLE
+    await prisma.bed.updateMany({
+      data: { status: 'AVAILABLE' }
+    })
+    
     // Do not delete bed, ward, department (structural data)
     await prisma.patient.deleteMany({})
 
