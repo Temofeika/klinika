@@ -54,6 +54,10 @@ model Doctor {
   schedules         DoctorSchedule[]
   labOrders         LabOrder[]
   hospitalizations  Hospitalization[]
+  commissionRate    Float              @default(30)
+  invoiceItems      InvoiceItem[]
+  timesheets        Timesheet[]
+  payrollRecords    PayrollRecord[]
 }
 
 model Message {
@@ -214,6 +218,9 @@ model InvoiceItem {
 
   service   Service? @relation(fields: [serviceId], references: [id])
   serviceId String?
+
+  doctor    Doctor?  @relation(fields: [doctorId], references: [id])
+  doctorId  String?
 }
 
 model Payment {
@@ -374,4 +381,35 @@ model DentalRecord {
   createdAt    DateTime @default(now())
 
   @@unique([patientId, toothNumber])
+}
+
+// ==========================================
+// Phase 14: Payroll & Timesheet
+// ==========================================
+
+model Timesheet {
+  id        String    @id @default(uuid())
+  doctorId  String
+  doctor    Doctor    @relation(fields: [doctorId], references: [id], onDelete: Cascade)
+  date      DateTime  @default(now())
+  clockIn   DateTime  @default(now())
+  clockOut  DateTime?
+  notes     String?
+}
+
+model PayrollRecord {
+  id          String   @id @default(uuid())
+  doctorId    String
+  doctor      Doctor   @relation(fields: [doctorId], references: [id], onDelete: Cascade)
+  periodStart DateTime
+  periodEnd   DateTime
+  baseAmount  Float    @default(0) // Earnings from services
+  bonus       Float    @default(0) // Bonuses
+  penalty     Float    @default(0) // Fines/penalties
+  totalAmount Float    @default(0) // Total payout
+  status      String   @default("PENDING") // PENDING, PAID
+  paidAt      DateTime?
+  notes       String?
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @default(now()) @updatedAt
 }

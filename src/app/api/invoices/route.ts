@@ -75,7 +75,7 @@ export async function POST(request: Request) {
     }
 
     // Create Invoice
-    const { patientId, items } = body // items: [{ serviceName, price, quantity }]
+    const { patientId, items, doctorId } = body // items: [{ serviceName, price, quantity }]
 
     if (!patientId || !items || !items.length) {
       return NextResponse.json({ error: 'Patient ID and items required' }, { status: 400 })
@@ -96,7 +96,8 @@ export async function POST(request: Request) {
             price: parseFloat(i.price),
             quantity: i.quantity || 1,
             amount: parseFloat(i.price) * (i.quantity || 1),
-            serviceId: i.serviceId || null
+            serviceId: i.serviceId || null,
+            doctorId: doctorId || i.doctorId || null
           }))
         }
       },
