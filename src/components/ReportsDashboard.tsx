@@ -160,7 +160,7 @@ export default function ReportsDashboard() {
                     <Cell key={`cell-${index}`} fill={entry.color} />
                   ))}
                 </Pie>
-                <RechartsTooltip formatter={(value: number) => `${value.toLocaleString()} ₽`} />
+                <RechartsTooltip formatter={(value: any) => `${Number(value || 0).toLocaleString()} ₽`} />
                 <Legend />
               </PieChart>
             </ResponsiveContainer>
