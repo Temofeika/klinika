@@ -10,7 +10,8 @@ import {
   Settings, 
   Activity,
   Stethoscope,
-  PieChart
+  PieChart,
+  Package
 } from 'lucide-react'
 
 interface SidebarProps {
@@ -25,6 +26,7 @@ export default function Sidebar({ activeTab, setActiveTab, unreadCount = 0 }: Si
     { id: 'patients', label: 'Пациенты и ЭМК', icon: Users, color: 'text-emerald-500' },
     { id: 'labs', label: 'Лаборатория (ЛИС)', icon: TestTube2, color: 'text-purple-500' },
     { id: 'billing', label: 'Касса и Счета', icon: CreditCard, color: 'text-amber-500' },
+    { id: 'warehouse', label: 'Склад', icon: Package, color: 'text-orange-500' },
     { id: 'chat', label: 'Сообщения / Мессенджеры', icon: MessageSquare, color: 'text-sky-500', badge: unreadCount },
     { id: 'admin', label: 'Администрирование', icon: Settings, color: 'text-slate-400' },
     { id: 'reports', label: 'Отчеты и Аналитика', icon: PieChart, color: 'text-rose-500' },
