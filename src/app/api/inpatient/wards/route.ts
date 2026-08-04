@@ -39,7 +39,6 @@ export async function POST(req: Request) {
     const dept = await prisma.department.create({
       data: {
         name: 'Хирургическое отделение',
-        type: 'SURGERY',
         wards: {
           create: [
             {
