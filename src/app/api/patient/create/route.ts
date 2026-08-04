@@ -18,7 +18,7 @@ function normalizePhone(phone: string): string {
 export async function POST(request: Request) {
   try {
     const body = await request.json()
-    const { firstName, lastName, phone, email, telegramId, whatsappId, doctorId } = body
+    const { firstName, lastName, phone, email, telegramId, maxId, doctorId } = body
 
     if (!firstName || !lastName || !phone) {
       return NextResponse.json({ error: 'Missing required fields' }, { status: 400 })
@@ -47,9 +47,9 @@ export async function POST(request: Request) {
         messengerAccounts: {
           create: [
             ...(telegramId ? [{ platform: 'TELEGRAM', externalId: telegramId }] : []),
-            ...(whatsappId ? [{ platform: 'WHATSAPP', externalId: whatsappId }] : []),
-            // Default WhatsApp to phone if no ID provided
-            ...(!whatsappId && normalizedPhone ? [{ platform: 'WHATSAPP', externalId: normalizedPhone }] : [])
+            ...(maxId ? [{ platform: 'MAX', externalId: maxId }] : []),
+            // Default MAX to phone if no ID provided
+            ...(!maxId && normalizedPhone ? [{ platform: 'MAX', externalId: normalizedPhone }] : [])
           ]
         }
       },
@@ -64,6 +64,6 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: 'Patient with this phone number already exists' }, { status: 409 })
     }
     console.error('Create Patient API error:', error)
-    return NextResponse.json({ error: 'Internal server error' }, { status: 500 })
+    return NextResponse.json({ error: 'Internal server error', details: error.message, stack: error.stack }, { status: 500 })
   }
 }

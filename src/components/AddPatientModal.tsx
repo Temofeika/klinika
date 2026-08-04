@@ -38,7 +38,7 @@ export default function AddPatientModal({ onClose, onSuccess, doctorId }: AddPat
         onSuccess(data)
         onClose()
       } else {
-        setError(data.error || 'Произошла ошибка при создании пациента')
+        setError(data.details || data.error || 'Произошла ошибка при создании пациента')
       }
     } catch (err) {
       setError('Ошибка сети')
