@@ -122,14 +122,14 @@ export default function AdminServices() {
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-b border-slate-100 pb-4">
         <div>
           <h2 className="text-xl font-bold text-slate-900 flex items-center gap-2">
-            <Stethoscope className="text-primary w-6 h-6" />
+            <Stethoscope className="text-blue-600 w-6 h-6" />
             Справочник Услуг (Прайс-лист)
           </h2>
           <p className="text-sm text-slate-500 mt-1">Управление каталогом медицинских услуг и цен</p>
         </div>
         <button 
           onClick={() => handleOpenModal()}
-          className="bg-primary hover:bg-primary-hover text-white px-4 py-2 rounded-xl text-sm font-semibold flex items-center gap-2 shadow-sm transition"
+          className="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-xl text-sm font-semibold flex items-center gap-2 shadow-sm transition"
         >
           <Plus size={16} /> Новая услуга
         </button>
@@ -278,7 +278,7 @@ export default function AdminServices() {
                 </button>
                 <button 
                   type="submit" 
-                  className="px-4 py-2 bg-primary hover:bg-primary-hover text-white rounded-xl text-sm font-semibold shadow transition"
+                  className="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-xl text-sm font-semibold shadow transition"
                 >
                   {editingService ? 'Сохранить изменения' : 'Создать услугу'}
                 </button>

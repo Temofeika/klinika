@@ -32,7 +32,7 @@ export default function ReportsDashboard() {
       <div className="flex items-center justify-between mb-8">
         <div>
           <h1 className="text-2xl font-bold text-slate-900 flex items-center gap-2">
-            <PieChart className="text-primary" />
+            <PieChart className="text-blue-600" />
             Аналитика и Отчеты
           </h1>
           <p className="text-sm text-slate-500">Статистика по работе клиники (Аналог финансового модуля Medialog)</p>
