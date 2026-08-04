@@ -10,6 +10,8 @@ import PatientMedicalCard from './PatientMedicalCard'
 import PatientBilling from './PatientBilling'
 import PatientLabs from './PatientLabs'
 import PatientDischarge from './PatientDischarge'
+import PatientObservation from './PatientObservation'
+import PatientDental from './PatientDental'
 
 interface Message {
   id: string
@@ -82,7 +84,7 @@ export default function PatientCard({ patient: initialPatient, doctorId, current
   const [input, setInput] = React.useState('')
   const [chatSearch, setChatSearch] = React.useState('')
   const [showSearch, setShowSearch] = React.useState(false)
-  const [activeTab, setActiveTab] = React.useState<'CHAT' | 'DOCS' | 'APPS' | 'MEDICAL' | 'BILLING' | 'LABS' | 'DISCHARGE'>('CHAT')
+  const [activeTab, setActiveTab] = React.useState<'CHAT' | 'DOCS' | 'APPS' | 'MEDICAL' | 'BILLING' | 'LABS' | 'DISCHARGE' | 'OBSERVATION' | 'DENTAL'>('CHAT')
   const [platform, setPlatform] = React.useState<'TELEGRAM' | 'MAX'>('TELEGRAM')
   const [sending, setSending] = React.useState(false)
 
@@ -737,6 +739,20 @@ export default function PatientCard({ patient: initialPatient, doctorId, current
             >
               <FileText size={18} /> Выписка
             </button>
+            <button 
+              className={`tab-btn ${activeTab === 'DENTAL' ? 'active' : ''}`} 
+              onClick={() => setActiveTab('DENTAL')}
+            >
+              <Check size={18} /> Стоматология
+            </button>
+            {patient.hospitalizations && patient.hospitalizations.length > 0 && (
+              <button 
+                className={`tab-btn ${activeTab === 'OBSERVATION' ? 'active' : ''}`} 
+                onClick={() => setActiveTab('OBSERVATION')}
+              >
+                <BedDouble size={18} /> Стационар
+              </button>
+            )}
           </div>
 
           {activeTab === 'CHAT' ? (
@@ -937,6 +953,10 @@ export default function PatientCard({ patient: initialPatient, doctorId, current
             <PatientBilling patientId={patient.id} />
           ) : activeTab === 'LABS' ? (
             <PatientLabs medical={medical} onUpdate={handleUpdateMedical} />
+          ) : activeTab === 'OBSERVATION' && patient.hospitalizations && patient.hospitalizations.length > 0 ? (
+            <PatientObservation patientId={patient.id} hospitalizationId={patient.hospitalizations.find(h => h.status === 'ADMITTED')?.id || patient.hospitalizations[0].id} />
+          ) : activeTab === 'DENTAL' ? (
+            <PatientDental patientId={patient.id} />
           ) : (
             <PatientDischarge
               patient={patient}

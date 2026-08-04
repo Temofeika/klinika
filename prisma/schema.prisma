@@ -304,45 +304,73 @@ model ServiceInventory {
 // ==========================================
 
 model Department {
-  id        String   @id @default(cuid())
-  name      String   // e.g., "Хирургическое отделение"
-  type      String   @default("GENERAL")
+  id        String   @id @default(uuid())
+  name      String   @unique
   wards     Ward[]
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
 }
 
 model Ward {
-  id           String     @id @default(cuid())
-  number       String     // e.g., "Палата 201"
-  type         String     @default("GENERAL") // "GENERAL", "ICU"
-  department   Department @relation(fields: [departmentId], references: [id], onDelete: Cascade)
+  id           String      @id @default(uuid())
+  number       String
   departmentId String
+  department   Department  @relation(fields: [departmentId], references: [id], onDelete: Cascade)
   beds         Bed[]
+  createdAt    DateTime    @default(now())
+  updatedAt    DateTime    @updatedAt
 }
 
 model Bed {
-  id           String     @id @default(cuid())
-  number       String     // e.g., "Койка 1"
-  status       String     @default("AVAILABLE") // "AVAILABLE", "OCCUPIED", "MAINTENANCE"
-  ward         Ward       @relation(fields: [wardId], references: [id], onDelete: Cascade)
-  wardId       String
-  
+  id               String            @id @default(uuid())
+  number           String
+  wardId           String
+  ward             Ward              @relation(fields: [wardId], references: [id], onDelete: Cascade)
+  status           String            @default("AVAILABLE") // AVAILABLE, OCCUPIED, CLEANING
   hospitalizations Hospitalization[]
+  createdAt        DateTime          @default(now())
+  updatedAt        DateTime          @updatedAt
 }
 
 model Hospitalization {
-  id          String    @id @default(cuid())
-  startDate   DateTime  @default(now())
-  endDate     DateTime?
-  diagnosis   String?
-  status      String    @default("ADMITTED") // "ADMITTED", "DISCHARGED", "TRANSFERRED"
-  notes       String?
+  id             String        @id @default(uuid())
+  patientId      String
+  patient        Patient       @relation(fields: [patientId], references: [id], onDelete: Cascade)
+  bedId          String
+  bed            Bed           @relation(fields: [bedId], references: [id])
+  doctorId       String?
+  doctor         Doctor?       @relation(fields: [doctorId], references: [id])
+  status         String        @default("ADMITTED") // ADMITTED, DISCHARGED
+  diagnosis      String?
+  admittedAt     DateTime      @default(now())
+  dischargedAt   DateTime?
+  dischargeNotes String?
+  observations   Observation[]
+  createdAt      DateTime      @default(now())
+  updatedAt      DateTime      @updatedAt
+}
 
-  patient     Patient   @relation(fields: [patientId], references: [id])
-  patientId   String
+model Observation {
+  id               String          @id @default(uuid())
+  hospitalizationId String
+  hospitalization   Hospitalization @relation(fields: [hospitalizationId], references: [id], onDelete: Cascade)
+  temperature      Float?
+  bloodPressure    String?
+  heartRate        Int?
+  medications      String?
+  notes            String?
+  recordedAt       DateTime        @default(now())
+}
 
-  doctor      Doctor    @relation(fields: [doctorId], references: [id])
-  doctorId    String
+model DentalRecord {
+  id           String   @id @default(uuid())
+  patientId    String
+  patient      Patient  @relation(fields: [patientId], references: [id], onDelete: Cascade)
+  toothNumber  Int
+  status       String   @default("HEALTHY") // HEALTHY, CARIES, FILLED, IMPLANT, EXTRACTED, CROWN
+  notes        String?
+  updatedAt    DateTime @updatedAt
+  createdAt    DateTime @default(now())
 
-  bed         Bed       @relation(fields: [bedId], references: [id])
-  bedId       String
+  @@unique([patientId, toothNumber])
 }
