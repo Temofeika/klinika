@@ -19,6 +19,7 @@ export default function LeadCardModal({ lead, onClose, onUpdate }: LeadCardModal
   const [status, setStatus] = useState(lead.status)
   
   const handleAddInteraction = async () => {
+    // ... logic for interactions
     if (!newNote.trim()) return
     try {
       const res = await fetch('/api/crm/interactions', {
@@ -41,6 +42,29 @@ export default function LeadCardModal({ lead, onClose, onUpdate }: LeadCardModal
       }
     } catch (e) {
       console.error(e)
+    }
+  }
+
+  const handleConvertToPatient = async () => {
+    if (!window.confirm('Перевести этого лида в Пациенты? Будет создана ЭМК, а статус лида изменится на "Успех".')) return;
+    try {
+      const res = await fetch('/api/crm/leads', {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          id: lead.id,
+          status: 'SUCCESS',
+          convertToPatient: true
+        })
+      })
+      if (res.ok) {
+        const updatedLead = await res.json()
+        onUpdate(updatedLead)
+        alert('Карта пациента успешно создана!')
+      }
+    } catch (e) {
+      console.error(e)
+      alert('Ошибка конвертации')
     }
   }
 
@@ -109,6 +133,14 @@ export default function LeadCardModal({ lead, onClose, onUpdate }: LeadCardModal
                   {lead.expectedAmount.toLocaleString('ru-RU')} ₽
                 </div>
               </div>
+
+              <button 
+                onClick={handleConvertToPatient}
+                className="w-full py-3 bg-emerald-600 hover:bg-emerald-500 text-white font-bold rounded-xl shadow-md shadow-emerald-500/20 transition-all flex justify-center items-center gap-2"
+              >
+                <User size={18} />
+                Конвертировать в Пациента
+              </button>
 
               <div>
                 <label className="text-xs font-bold text-slate-400 uppercase tracking-wider mb-2 block">Канал привлечения</label>
