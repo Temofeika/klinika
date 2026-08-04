@@ -21,8 +21,7 @@ export async function POST(req: Request) {
         patientId,
         doctorId,
         bedId,
-        diagnosis,
-        notes
+        diagnosis
       }
     })
 
@@ -48,8 +47,8 @@ export async function PATCH(req: Request) {
       where: { id: hospitalizationId },
       data: {
         status: 'DISCHARGED',
-        endDate: new Date(),
-        notes: dischargeNotes
+        dischargedAt: new Date(),
+        dischargeNotes
       }
     })
 
