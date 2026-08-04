@@ -12,6 +12,7 @@ import AddPatientModal from '@/components/AddPatientModal'
 import AdminServices from '@/components/AdminServices'
 import ReportsDashboard from '@/components/ReportsDashboard'
 import WarehouseDashboard from '@/components/WarehouseDashboard'
+import AdminDoctors from '@/components/AdminDoctors'
 
 export default function Home() {
   const [activeTab, setActiveTab] = useState<string>('schedule')
@@ -133,6 +134,7 @@ export default function Home() {
               </div>
 
               <AdminServices />
+              <AdminDoctors />
             </div>
           )}
         </main>

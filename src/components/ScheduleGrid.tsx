@@ -30,6 +30,7 @@ interface Doctor {
   lastName: string
   position: string
   room?: string
+  schedules?: any[]
 }
 
 export default function ScheduleGrid({ onSelectPatient }: { onSelectPatient: (id: string) => void }) {
@@ -63,7 +64,7 @@ export default function ScheduleGrid({ onSelectPatient }: { onSelectPatient: (id
 
   const fetchDoctors = async () => {
     try {
-      const res = await fetch('/api/doctors')
+      const res = await fetch('/api/doctors/schedules')
       const data = await res.json()
       if (Array.isArray(data)) setDoctors(data)
     } catch (e) {}
@@ -257,14 +258,36 @@ export default function ScheduleGrid({ onSelectPatient }: { onSelectPatient: (id
             Время
           </div>
           <div className="flex-1 flex min-w-0">
-            {doctors.map(doctor => (
-              <div key={doctor.id} className="flex-1 border-r border-slate-200 p-3 min-w-[200px] text-center">
-                <p className="font-bold text-sm text-slate-800 truncate" title={`${doctor.lastName} ${doctor.firstName}`}>
-                  {doctor.lastName} {doctor.firstName[0]}.
-                </p>
-                <p className="text-[10px] text-slate-500 uppercase">{doctor.position} {doctor.room && `(Каб. ${doctor.room})`}</p>
+            {doctors.filter(d => {
+              const dayOfWeek = new Date(selectedDate).getDay()
+              // If doctor has no schedules at all, show them (legacy support).
+              if (!d.schedules || d.schedules.length === 0) return true
+              // Otherwise, show only if they work on this day
+              return d.schedules.some((s: any) => s.dayOfWeek === dayOfWeek)
+            }).length === 0 && (
+              <div className="flex-1 flex items-center justify-center p-3 text-slate-400 text-sm">
+                Нет работающих врачей в этот день
               </div>
-            ))}
+            )}
+            {doctors.filter(d => {
+              const dayOfWeek = new Date(selectedDate).getDay()
+              if (!d.schedules || d.schedules.length === 0) return true
+              return d.schedules.some((s: any) => s.dayOfWeek === dayOfWeek)
+            }).map(doctor => {
+              const dayOfWeek = new Date(selectedDate).getDay()
+              const sched = doctor.schedules?.find((s: any) => s.dayOfWeek === dayOfWeek)
+              return (
+                <div key={doctor.id} className="flex-1 border-r border-slate-200 p-3 min-w-[200px] text-center">
+                  <p className="font-bold text-sm text-slate-800 truncate" title={`${doctor.lastName} ${doctor.firstName}`}>
+                    {doctor.lastName} {doctor.firstName[0]}.
+                  </p>
+                  <p className="text-[10px] text-slate-500 uppercase">
+                    {doctor.position} {doctor.room && `(Каб. ${doctor.room})`} 
+                    {sched && ` • ${sched.startTime}-${sched.endTime}`}
+                  </p>
+                </div>
+              )
+            })}
           </div>
         </div>
 
@@ -283,22 +306,41 @@ export default function ScheduleGrid({ onSelectPatient }: { onSelectPatient: (id
 
             {/* Doctors Columns */}
             <div className="flex-1 flex relative">
-              {doctors.map(doctor => (
-                <div key={doctor.id} className="flex-1 border-r border-slate-100 min-w-[200px] relative">
-                  {/* Empty Drop Zones */}
-                  {TIME_SLOTS.map((time) => (
-                    <div 
-                      key={time} 
-                      className="border-b border-slate-100/50 hover:bg-blue-50/50 cursor-pointer transition-colors"
-                      style={{ height: SLOT_HEIGHT }}
-                      onDragOver={handleDragOver}
-                      onDrop={(e) => handleDrop(e, doctor.id, time)}
-                      onClick={() => handleEmptySlotClick(doctor.id, time)}
-                    />
-                  ))}
+              {doctors.filter(d => {
+                const dayOfWeek = new Date(selectedDate).getDay()
+                if (!d.schedules || d.schedules.length === 0) return true
+                return d.schedules.some((s: any) => s.dayOfWeek === dayOfWeek)
+              }).map(doctor => {
+                const dayOfWeek = new Date(selectedDate).getDay()
+                const sched = doctor.schedules?.find((s: any) => s.dayOfWeek === dayOfWeek)
+                
+                return (
+                  <div key={doctor.id} className="flex-1 border-r border-slate-100 min-w-[200px] relative">
+                    {/* Empty Drop Zones */}
+                    {TIME_SLOTS.map((time) => {
+                      // Optionally, visually disable slots outside of shift
+                      let isWorkingHour = true
+                      if (sched) {
+                        const tMins = parseInt(time.split(':')[0]) * 60 + parseInt(time.split(':')[1])
+                        const startMins = parseInt(sched.startTime.split(':')[0]) * 60 + parseInt(sched.startTime.split(':')[1])
+                        const endMins = parseInt(sched.endTime.split(':')[0]) * 60 + parseInt(sched.endTime.split(':')[1])
+                        if (tMins < startMins || tMins >= endMins) isWorkingHour = false
+                      }
+                      
+                      return (
+                        <div 
+                          key={time} 
+                          className={`border-b ${isWorkingHour ? 'border-slate-100/50 hover:bg-blue-50/50 cursor-pointer' : 'border-slate-100/20 bg-slate-50/50 cursor-not-allowed'} transition-colors`}
+                          style={{ height: SLOT_HEIGHT }}
+                          onDragOver={isWorkingHour ? handleDragOver : undefined}
+                          onDrop={isWorkingHour ? (e) => handleDrop(e, doctor.id, time) : undefined}
+                          onClick={isWorkingHour ? () => handleEmptySlotClick(doctor.id, time) : undefined}
+                        />
+                      )
+                    })}
 
-                  {/* Render Appointments for this doctor */}
-                  {appointments.filter(a => a.doctorId === doctor.id).map(app => {
+                    {/* Render Appointments for this doctor */}
+                    {appointments.filter(a => a.doctorId === doctor.id).map(app => {
                     const startDate = new Date(app.startTime)
                     const endDate = new Date(app.endTime)
                     const startHours = startDate.getHours()
