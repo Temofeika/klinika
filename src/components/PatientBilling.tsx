@@ -26,6 +26,7 @@ interface PatientBillingProps {
 
 export default function PatientBilling({ patientId }: PatientBillingProps) {
   const [invoices, setInvoices] = useState<Invoice[]>([])
+  const [services, setServices] = useState<any[]>([])
   const [loading, setLoading] = useState(true)
   const [showModal, setShowModal] = useState(false)
   
@@ -36,7 +37,18 @@ export default function PatientBilling({ patientId }: PatientBillingProps) {
 
   useEffect(() => {
     fetchInvoices()
+    fetchServices()
   }, [patientId])
+
+  const fetchServices = async () => {
+    try {
+      const res = await fetch('/api/services')
+      const data = await res.json()
+      if (Array.isArray(data)) setServices(data)
+    } catch (e) {
+      console.error(e)
+    }
+  }
 
   const fetchInvoices = async () => {
     setLoading(true)
@@ -213,21 +225,28 @@ export default function PatientBilling({ patientId }: PatientBillingProps) {
             </div>
             <form onSubmit={handleCreateInvoice} className="sub-modal-form">
               <div className="sub-form-group">
-                <label>Медицинская услуга</label>
-                <input 
-                  type="text" 
+                <label>Медицинская услуга из каталога</label>
+                <select 
                   required 
-                  placeholder="Например, Консультация специалиста"
                   value={billService}
-                  onChange={e => setBillService(e.target.value)}
-                />
+                  onChange={e => {
+                    setBillService(e.target.value)
+                    const srv = services.find(s => s.name === e.target.value)
+                    if (srv) setBillAmount(srv.price.toString())
+                  }}
+                >
+                  <option value="">-- Выберите услугу --</option>
+                  {services.map(s => (
+                    <option key={s.id} value={s.name}>{s.name} ({s.price} ₽)</option>
+                  ))}
+                </select>
               </div>
               <div className="sub-form-group">
                 <label>Стоимость (руб.)</label>
                 <input 
                   type="number" 
                   required 
-                  placeholder="Например, 1500"
+                  placeholder="Определяется автоматически или вручную"
                   value={billAmount}
                   onChange={e => setBillAmount(e.target.value)}
                 />

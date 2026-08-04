@@ -3,38 +3,39 @@ import { PrismaClient } from '@prisma/client'
 
 const prisma = new PrismaClient()
 
-// GET /api/appointments?doctorId=...&date=...
-export async function GET(request: Request) {
-  try {
-    const { searchParams } = new URL(request.url)
-    const doctorId = searchParams.get('doctorId')
-    const patientId = searchParams.get('patientId')
-    const dateStr = searchParams.get('date')
+export async function GET(req: Request) {
+  const { searchParams } = new URL(req.url)
+  const dateStr = searchParams.get('date') // "YYYY-MM-DD"
+  const doctorId = searchParams.get('doctorId')
 
-    const where: any = {}
-    if (doctorId) where.doctorId = doctorId
-    if (patientId) where.patientId = patientId
+  try {
+    let where: any = {}
 
     if (dateStr) {
-      const targetDate = new Date(dateStr)
-      const startOfDay = new Date(targetDate.getFullYear(), targetDate.getMonth(), targetDate.getDate(), 0, 0, 0)
-      const endOfDay = new Date(targetDate.getFullYear(), targetDate.getMonth(), targetDate.getDate(), 23, 59, 59)
+      const startOfDay = new Date(`${dateStr}T00:00:00.000Z`)
+      const endOfDay = new Date(`${dateStr}T23:59:59.999Z`)
       where.startTime = {
         gte: startOfDay,
         lte: endOfDay
       }
     }
 
+    if (doctorId) {
+      where.doctorId = doctorId
+    }
+
     const appointments = await prisma.appointment.findMany({
       where,
       include: {
-        patient: true,
-        doctor: true,
+        patient: {
+          select: { id: true, firstName: true, lastName: true, phone: true }
+        },
+        doctor: {
+          select: { id: true, firstName: true, lastName: true, position: true }
+        },
         service: true
       },
-      orderBy: {
-        startTime: 'asc'
-      }
+      orderBy: { startTime: 'asc' }
     })
 
     return NextResponse.json(appointments)
@@ -43,28 +44,19 @@ export async function GET(request: Request) {
   }
 }
 
-// POST /api/appointments
-export async function POST(request: Request) {
+export async function POST(req: Request) {
   try {
-    const body = await request.json()
-    const { patientId, doctorId, serviceId, startTime, endTime, room, notes } = body
-
-    if (!patientId || !doctorId || !startTime) {
-      return NextResponse.json({ error: 'Missing required fields' }, { status: 400 })
-    }
-
-    const start = new Date(startTime)
-    const end = endTime ? new Date(endTime) : new Date(start.getTime() + 30 * 60000)
+    const body = await req.json()
+    const { patientId, doctorId, serviceId, startTime, endTime, notes } = body
 
     const appointment = await prisma.appointment.create({
       data: {
         patientId,
         doctorId,
-        serviceId: serviceId || null,
-        startTime: start,
-        endTime: end,
-        room: room || '101',
-        notes: notes || '',
+        serviceId,
+        startTime: new Date(startTime),
+        endTime: new Date(endTime),
+        notes,
         status: 'BOOKED'
       },
       include: {
@@ -80,32 +72,17 @@ export async function POST(request: Request) {
   }
 }
 
-// PATCH /api/appointments
-export async function PATCH(request: Request) {
+export async function PATCH(req: Request) {
   try {
-    const body = await request.json()
-    const { id, status, notes, room } = body
+    const body = await req.json()
+    const { id, status } = body
 
-    if (!id) {
-      return NextResponse.json({ error: 'Appointment ID required' }, { status: 400 })
-    }
-
-    const data: any = {}
-    if (status) data.status = status
-    if (notes !== undefined) data.notes = notes
-    if (room !== undefined) data.room = room
-
-    const updated = await prisma.appointment.update({
+    const appointment = await prisma.appointment.update({
       where: { id },
-      data,
-      include: {
-        patient: true,
-        doctor: true,
-        service: true
-      }
+      data: { status }
     })
 
-    return NextResponse.json(updated)
+    return NextResponse.json(appointment)
   } catch (error: any) {
     return NextResponse.json({ error: error.message }, { status: 500 })
   }
