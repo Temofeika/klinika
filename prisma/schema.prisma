@@ -450,6 +450,7 @@ model Interaction {
   status      String    @default("COMPLETED") // "PLANNED", "COMPLETED"
   plannedAt   DateTime? // If it's a scheduled task
   audioUrl    String?   // For call recordings
+  tgNotified  Boolean   @default(false) // Whether Telegram notification was sent
   createdAt   DateTime  @default(now())
   updatedAt   DateTime  @default(now()) @updatedAt
 }

@@ -14,6 +14,7 @@ export default function SettingsPage() {
 
   // Telegram settings state
   const [tgBotToken, setTgBotToken] = React.useState('')
+  const [tgAdminChatId, setTgAdminChatId] = React.useState('')
   const [origin, setOrigin] = React.useState('https://[ваш-домен]')
   const [isSaving, setIsSaving] = React.useState(false)
 
@@ -47,6 +48,7 @@ export default function SettingsPage() {
         .then(data => {
           if (data) {
             setTgBotToken(data.telegramBotToken || '')
+            setTgAdminChatId(data.telegramAdminChatId || '')
           }
         })
         .catch(console.error)
@@ -59,7 +61,7 @@ export default function SettingsPage() {
       const res = await fetch('/api/settings/telegram', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ telegramBotToken: tgBotToken })
+        body: JSON.stringify({ telegramBotToken: tgBotToken, telegramAdminChatId: tgAdminChatId })
       })
       if (res.ok) {
         alert('Настройки Telegram-бота успешно сохранены! Вебхук зарегистрирован.')
@@ -160,6 +162,19 @@ export default function SettingsPage() {
                       <li>Отправьте команду <code className="bg-slate-100 p-0.5 rounded text-red-500 font-mono">/newbot</code> и следуйте инструкциям</li>
                       <li>Скопируйте полученный HTTP API Token и вставьте его сюда.</li>
                     </ol>
+                  </span>
+                </div>
+
+                <div className="form-group mt-4">
+                  <label>Telegram Admin Chat ID (для уведомлений о задачах)</label>
+                  <input 
+                    type="text" 
+                    placeholder="Например: 123456789" 
+                    value={tgAdminChatId} 
+                    onChange={e => setTgAdminChatId(e.target.value)} 
+                  />
+                  <span className="field-hint">
+                    Укажите ваш Chat ID (можно узнать у бота @userinfobot). Сюда будут приходить напоминания по задачам из CRM.
                   </span>
                 </div>
 

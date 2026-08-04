@@ -3,12 +3,12 @@ import { prisma } from '@/lib/db'
 
 export async function GET() {
   try {
-    const setting = await prisma.systemSetting.findUnique({
-      where: { key: 'TELEGRAM_BOT_TOKEN' }
-    })
+    const tokenSetting = await prisma.systemSetting.findUnique({ where: { key: 'TELEGRAM_BOT_TOKEN' } })
+    const adminSetting = await prisma.systemSetting.findUnique({ where: { key: 'TELEGRAM_ADMIN_CHAT_ID' } })
 
     return NextResponse.json({
-      telegramBotToken: setting?.value || ''
+      telegramBotToken: tokenSetting?.value || '',
+      telegramAdminChatId: adminSetting?.value || ''
     })
   } catch (error) {
     console.error('Failed to get Telegram settings', error)
@@ -19,13 +19,20 @@ export async function GET() {
 export async function POST(request: Request) {
   try {
     const body = await request.json()
-    const { telegramBotToken } = body
+    const { telegramBotToken, telegramAdminChatId } = body
 
-    await prisma.systemSetting.upsert({
-      where: { key: 'TELEGRAM_BOT_TOKEN' },
-      update: { value: telegramBotToken || '' },
-      create: { key: 'TELEGRAM_BOT_TOKEN', value: telegramBotToken || '' }
-    })
+    await prisma.$transaction([
+      prisma.systemSetting.upsert({
+        where: { key: 'TELEGRAM_BOT_TOKEN' },
+        update: { value: telegramBotToken || '' },
+        create: { key: 'TELEGRAM_BOT_TOKEN', value: telegramBotToken || '' }
+      }),
+      prisma.systemSetting.upsert({
+        where: { key: 'TELEGRAM_ADMIN_CHAT_ID' },
+        update: { value: telegramAdminChatId || '' },
+        create: { key: 'TELEGRAM_ADMIN_CHAT_ID', value: telegramAdminChatId || '' }
+      })
+    ])
 
     // Automatically register/update the Telegram Bot API Webhook!
     if (telegramBotToken) {
