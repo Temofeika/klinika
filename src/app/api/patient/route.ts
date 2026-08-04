@@ -26,7 +26,10 @@ export async function GET(request: Request) {
             }
           } : true),
           messengerAccounts: true,
-          doctors: true
+          doctors: true,
+          hospitalizations: {
+            where: { status: 'ADMITTED' }
+          }
         }
       })
       return NextResponse.json(patient)
@@ -149,7 +152,10 @@ export async function PUT(request: Request) {
       include: {
         messages: true,
         messengerAccounts: true,
-        doctors: true
+        doctors: true,
+        hospitalizations: {
+          where: { status: 'ADMITTED' }
+        }
       }
     })
 

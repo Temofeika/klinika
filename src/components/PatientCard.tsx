@@ -36,6 +36,7 @@ interface Patient {
     lastName: string
     position: string
   }>
+  hospitalizations?: any[]
 }
 
 const defaultMedical = {
@@ -245,6 +246,11 @@ export default function PatientCard({ patient: initialPatient, doctorId, current
         })
       })
       if (res.ok) {
+        const hosp = await res.json()
+        setPatient(prev => ({
+          ...prev,
+          hospitalizations: [...(prev.hospitalizations || []), hosp]
+        }))
         setShowAdmitModal(false)
         alert('Пациент успешно госпитализирован')
       } else {
@@ -672,9 +678,15 @@ export default function PatientCard({ patient: initialPatient, doctorId, current
             )}
           </div>
           <div style={{ display: 'flex', gap: '0.5rem' }}>
-            <button className="btn-primary" style={{ background: '#4f46e5' }} onClick={handleOpenAdmit}>
-              <BedDouble size={18} /> Госпитализация
-            </button>
+            {patient.hospitalizations && patient.hospitalizations.length > 0 ? (
+              <button className="btn-primary" style={{ background: '#f87171', cursor: 'not-allowed' }} disabled title="Пациент уже госпитализирован">
+                <BedDouble size={18} /> В стационаре
+              </button>
+            ) : (
+              <button className="btn-primary" style={{ background: '#4f46e5' }} onClick={handleOpenAdmit}>
+                <BedDouble size={18} /> Госпитализация
+              </button>
+            )}
             <button className="btn-primary"><Share2 size={18} /> Экспорт</button>
           </div>
         </div>
