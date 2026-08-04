@@ -75,11 +75,22 @@ export async function POST(req: Request) {
 export async function PATCH(req: Request) {
   try {
     const body = await req.json()
-    const { id, status } = body
+    const { id, status, startTime, endTime, doctorId } = body
+
+    const updateData: any = {}
+    if (status !== undefined) updateData.status = status
+    if (startTime !== undefined) updateData.startTime = new Date(startTime)
+    if (endTime !== undefined) updateData.endTime = new Date(endTime)
+    if (doctorId !== undefined) updateData.doctorId = doctorId
 
     const appointment = await prisma.appointment.update({
       where: { id },
-      data: { status }
+      data: updateData,
+      include: {
+        patient: true,
+        doctor: true,
+        service: true
+      }
     })
 
     return NextResponse.json(appointment)
