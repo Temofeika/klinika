@@ -73,7 +73,7 @@ export default function Home() {
           {activeTab === 'patients' && (
             <div className="p-6">
               {patient ? (
-                <PatientCard patient={patient} />
+                <PatientCard patient={patient} currentRole={currentRole} />
               ) : (
                 <DoctorDashboard
                   onSelectPatient={(id) => setSelectedPatientId(id)}

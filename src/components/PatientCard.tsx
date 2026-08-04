@@ -76,7 +76,7 @@ const defaultMedical = {
   ]
 }
 
-export default function PatientCard({ patient: initialPatient, doctorId }: { patient: Patient; doctorId?: string }) {
+export default function PatientCard({ patient: initialPatient, doctorId, currentRole }: { patient: Patient; doctorId?: string; currentRole?: string }) {
   const [patient, setPatient] = React.useState(initialPatient)
   const [input, setInput] = React.useState('')
   const [chatSearch, setChatSearch] = React.useState('')
@@ -516,7 +516,7 @@ export default function PatientCard({ patient: initialPatient, doctorId }: { pat
   }
 
   const activeDoctorObj = doctorsList.find(d => d.id === doctorId)
-  const isAdministrator = activeDoctorObj?.position === 'Администратор'
+  const isAdministrator = currentRole === 'Администратор' || activeDoctorObj?.position === 'Администратор'
 
   return (
     <div className="patient-container">
