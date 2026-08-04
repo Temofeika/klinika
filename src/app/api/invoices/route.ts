@@ -47,10 +47,29 @@ export async function POST(request: Request) {
       })
 
       // Update invoice status to PAID
-      await prisma.invoice.update({
+      const updatedInvoice = await prisma.invoice.update({
         where: { id: invoiceId },
-        data: { status: 'PAID' }
-      }).catch(() => {})
+        data: { status: 'PAID' },
+        include: { patient: true, items: true }
+      }).catch(() => null)
+
+      // Send payment receipt via Telegram
+      if (updatedInvoice) {
+        const tgAccount = await prisma.messengerAccount.findFirst({
+          where: { patientId: updatedInvoice.patientId, platform: 'TELEGRAM' }
+        })
+        if (tgAccount) {
+          const tokenSetting = await prisma.systemSetting.findUnique({ where: { key: 'TELEGRAM_BOT_TOKEN' } })
+          if (tokenSetting?.value) {
+            const msg = `✅ <b>Оплата получена!</b>\nСчет №${updatedInvoice.invoiceNumber} на сумму ${updatedInvoice.totalAmount} ₽ успешно оплачен.\n\nСпасибо, что выбираете нашу клинику!`
+            await fetch(`https://api.telegram.org/bot${tokenSetting.value}/sendMessage`, {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({ chat_id: tgAccount.externalId, text: msg, parse_mode: 'HTML' })
+            }).catch(console.error)
+          }
+        }
+      }
 
       return NextResponse.json(payment)
     }
@@ -87,6 +106,23 @@ export async function POST(request: Request) {
         payments: true
       }
     })
+
+    // Send invoice via Telegram
+    const tgAccount = await prisma.messengerAccount.findFirst({
+      where: { patientId: invoice.patientId, platform: 'TELEGRAM' }
+    })
+    if (tgAccount) {
+      const tokenSetting = await prisma.systemSetting.findUnique({ where: { key: 'TELEGRAM_BOT_TOKEN' } })
+      if (tokenSetting?.value) {
+        const itemsList = invoice.items.map(i => `- ${i.serviceName}: ${i.amount} ₽`).join('\n')
+        const msg = `🧾 <b>Новый счет №${invoice.invoiceNumber}</b>\n\n${itemsList}\n\n<b>К оплате: ${invoice.totalAmount} ₽</b>`
+        await fetch(`https://api.telegram.org/bot${tokenSetting.value}/sendMessage`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ chat_id: tgAccount.externalId, text: msg, parse_mode: 'HTML' })
+        }).catch(console.error)
+      }
+    }
 
     return NextResponse.json(invoice)
   } catch (error: any) {

@@ -1,98 +1,128 @@
 'use client'
 
-import React from 'react'
+import React, { useState, useEffect } from 'react'
 import { CreditCard, Receipt, TrendingDown, TrendingUp, Plus, Download, X } from 'lucide-react'
 
-interface Transaction {
+interface InvoiceItem {
   id: string
-  date: string
-  service: string
+  serviceName: string
+  price: number
+  quantity: number
   amount: number
-  status: 'PAID' | 'PENDING' | 'OVERDUE'
+}
+
+interface Invoice {
+  id: string
+  invoiceNumber: string
+  totalAmount: number
+  status: 'UNPAID' | 'PAID' | 'PARTIALLY_PAID' | 'CANCELLED'
+  createdAt: string
+  items: InvoiceItem[]
 }
 
 interface PatientBillingProps {
-  medical: {
-    billing: Transaction[]
-    history: { date: string; desc: string }[]
-  }
-  onUpdate: (updated: any) => void
+  patientId: string
 }
 
-export default function PatientBilling({ medical, onUpdate }: PatientBillingProps) {
-  const [showModal, setShowModal] = React.useState(false)
+export default function PatientBilling({ patientId }: PatientBillingProps) {
+  const [invoices, setInvoices] = useState<Invoice[]>([])
+  const [loading, setLoading] = useState(true)
+  const [showModal, setShowModal] = useState(false)
   
   // Form states
-  const [billService, setBillService] = React.useState('')
-  const [billAmount, setBillAmount] = React.useState('')
-  const [billStatus, setBillStatus] = React.useState<'PAID' | 'PENDING'>('PENDING')
+  const [billService, setBillService] = useState('')
+  const [billAmount, setBillAmount] = useState('')
+  const [billStatus, setBillStatus] = useState<'UNPAID' | 'PAID'>('UNPAID')
 
-  const transactions = medical.billing || []
+  useEffect(() => {
+    fetchInvoices()
+  }, [patientId])
 
-  const totalPaid = transactions.filter(t => t.status === 'PAID').reduce((acc, t) => acc + t.amount, 0)
-  const balance = transactions.filter(t => t.status !== 'PAID').reduce((acc, t) => acc + t.amount, 0)
+  const fetchInvoices = async () => {
+    setLoading(true)
+    try {
+      const res = await fetch(`/api/invoices?patientId=${patientId}`)
+      const data = await res.json()
+      if (Array.isArray(data)) {
+        setInvoices(data)
+      }
+    } catch (e) {
+      console.error(e)
+    } finally {
+      setLoading(false)
+    }
+  }
 
-  const handleCreateInvoice = (e: React.FormEvent) => {
+  const totalPaid = invoices.filter(i => i.status === 'PAID').reduce((acc, i) => acc + i.totalAmount, 0)
+  const balance = invoices.filter(i => i.status !== 'PAID').reduce((acc, i) => acc + i.totalAmount, 0)
+
+  const handleCreateInvoice = async (e: React.FormEvent) => {
     e.preventDefault()
     const parsedAmount = parseFloat(billAmount)
     if (!billService.trim() || isNaN(parsedAmount) || parsedAmount <= 0) return
 
-    const today = new Date().toLocaleDateString('ru-RU')
-    const newInvoice: Transaction = {
-      id: Date.now().toString(),
-      date: today,
-      service: billService,
-      amount: parsedAmount,
-      status: billStatus as any
-    }
+    try {
+      const res = await fetch('/api/invoices', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          patientId,
+          items: [{ serviceName: billService, price: parsedAmount, quantity: 1 }]
+        })
+      })
 
-    const updated = {
-      ...medical,
-      billing: [...transactions, newInvoice],
-      history: [
-        {
-          date: today,
-          desc: `Выписан счет: ${billService} на сумму ${parsedAmount.toLocaleString()} ₽ (${billStatus === 'PAID' ? 'Оплачен' : 'Ожидает оплаты'}).`
-        },
-        ...(medical.history || [])
-      ]
-    }
+      if (res.ok) {
+        const newInvoice = await res.json()
+        
+        // If it was marked as paid immediately, process payment
+        if (billStatus === 'PAID') {
+          await fetch('/api/invoices', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+              action: 'PAYMENT',
+              invoiceId: newInvoice.id,
+              amount: parsedAmount,
+              paymentMethod: 'CASH'
+            })
+          })
+        }
 
-    onUpdate(updated)
-    setBillService('')
-    setBillAmount('')
-    setBillStatus('PENDING')
-    setShowModal(false)
+        alert(billStatus === 'PAID' ? 'Счет создан и оплачен!' : 'Счет создан и отправлен пациенту в Telegram!')
+        setShowModal(false)
+        setBillService('')
+        setBillAmount('')
+        setBillStatus('UNPAID')
+        fetchInvoices()
+      } else {
+        alert('Ошибка при создании счета')
+      }
+    } catch (e) {
+      console.error(e)
+    }
   }
 
-  const handleTogglePaymentStatus = (txId: string) => {
-    const today = new Date().toLocaleDateString('ru-RU')
-    const updatedBilling = transactions.map(t => {
-      if (t.id === txId) {
-        const nextStatus = t.status === 'PAID' ? 'PENDING' : 'PAID'
-        return { ...t, status: nextStatus as any }
+  const handlePayInvoice = async (invoiceId: string, amount: number) => {
+    if (!window.confirm('Подтвердить оплату счета?')) return
+
+    try {
+      const res = await fetch('/api/invoices', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          action: 'PAYMENT',
+          invoiceId,
+          amount,
+          paymentMethod: 'CASH'
+        })
+      })
+      if (res.ok) {
+        alert('Счет успешно оплачен. Пациент получил квитанцию в Telegram.')
+        fetchInvoices()
       }
-      return t
-    })
-
-    const targetTx = transactions.find(t => t.id === txId)
-    const logDesc = targetTx
-      ? `Статус счета за "${targetTx.service}" (${targetTx.amount} ₽) изменен на ${targetTx.status === 'PAID' ? 'Ожидает оплаты' : 'Оплачен'}.`
-      : 'Статус счета изменен.'
-
-    const updated = {
-      ...medical,
-      billing: updatedBilling,
-      history: [
-        {
-          date: today,
-          desc: logDesc
-        },
-        ...(medical.history || [])
-      ]
+    } catch (e) {
+      console.error(e)
     }
-
-    onUpdate(updated)
   }
 
   return (
@@ -108,58 +138,68 @@ export default function PatientBilling({ medical, onUpdate }: PatientBillingProp
         <div className="summary-card glass-card">
           <div className="summary-icon debt"><TrendingDown size={20} /></div>
           <div className="summary-info">
-            <div className="summary-label">Текущий долг</div>
+            <div className="summary-label">Текущий долг (к оплате)</div>
             <div className="summary-value">{balance.toLocaleString()} ₽</div>
           </div>
         </div>
       </div>
 
       <div className="transactions-header">
-        <h3>История транзакций</h3>
+        <h3>Выставленные счета (Invoices)</h3>
         <button className="btn-primary-small" onClick={() => setShowModal(true)}>
           <Plus size={16} /> Создать счет
         </button>
       </div>
 
       <div className="transactions-list glass-card">
-        {transactions.length > 0 ? (
+        {loading ? (
+          <p className="text-center p-6 text-slate-400 text-sm">Загрузка счетов...</p>
+        ) : invoices.length > 0 ? (
           <table className="transactions-table">
             <thead>
               <tr>
                 <th>Дата</th>
-                <th>Услуга</th>
+                <th>№ Счета</th>
+                <th>Услуги</th>
                 <th>Сумма</th>
                 <th>Статус</th>
-                <th>Действия</th>
+                <th>Оплата</th>
               </tr>
             </thead>
             <tbody>
-              {transactions.map(t => (
-                <tr key={t.id}>
-                  <td>{t.date}</td>
-                  <td className="service-cell">{t.service}</td>
-                  <td className="amount-cell">{t.amount.toLocaleString()} ₽</td>
+              {invoices.map(inv => (
+                <tr key={inv.id}>
+                  <td>{new Date(inv.createdAt).toLocaleDateString('ru-RU')}</td>
+                  <td className="font-mono text-xs text-slate-500">{inv.invoiceNumber}</td>
+                  <td className="service-cell">
+                    {inv.items.map((i, idx) => (
+                      <div key={idx}>{i.serviceName}</div>
+                    ))}
+                  </td>
+                  <td className="amount-cell">{inv.totalAmount.toLocaleString()} ₽</td>
                   <td>
-                    <span 
-                      className={`status-badge ${t.status.toLowerCase()}`}
-                      onClick={() => handleTogglePaymentStatus(t.id)}
-                      style={{ cursor: 'pointer' }}
-                      title="Нажмите, чтобы изменить статус оплаты"
-                    >
-                      {t.status === 'PAID' ? 'Оплачено' : t.status === 'PENDING' ? 'Ожидает' : 'Просрочено'}
+                    <span className={`status-badge ${inv.status.toLowerCase()}`}>
+                      {inv.status === 'PAID' ? 'Оплачено' : inv.status === 'UNPAID' ? 'Ожидает' : inv.status}
                     </span>
                   </td>
                   <td>
-                    <button className="icon-btn" onClick={() => handleTogglePaymentStatus(t.id)} title="Изменить статус оплаты">
-                      <CreditCard size={16} />
-                    </button>
+                    {inv.status !== 'PAID' ? (
+                      <button 
+                        className="flex items-center gap-1.5 px-3 py-1.5 bg-emerald-100 hover:bg-emerald-200 text-emerald-700 font-semibold text-xs rounded-lg transition"
+                        onClick={() => handlePayInvoice(inv.id, inv.totalAmount)}
+                      >
+                        <CreditCard size={14} /> Оплатить
+                      </button>
+                    ) : (
+                      <span className="text-emerald-500 font-bold text-xs">✓ Зачислено</span>
+                    )}
                   </td>
                 </tr>
               ))}
             </tbody>
           </table>
         ) : (
-          <p className="no-data">Транзакции отсутствуют</p>
+          <p className="no-data">Счета отсутствуют</p>
         )}
       </div>
 
@@ -195,8 +235,8 @@ export default function PatientBilling({ medical, onUpdate }: PatientBillingProp
               <div className="sub-form-group">
                 <label>Статус</label>
                 <select value={billStatus} onChange={e => setBillStatus(e.target.value as any)}>
-                  <option value="PENDING">Ожидает оплаты</option>
-                  <option value="PAID">Оплачено сразу</option>
+                  <option value="UNPAID">Ожидает оплаты (выставить счет)</option>
+                  <option value="PAID">Сразу оплачено (квитанция)</option>
                 </select>
               </div>
               <div className="sub-modal-footer">
@@ -262,6 +302,7 @@ export default function PatientBilling({ medical, onUpdate }: PatientBillingProp
         .transactions-header h3 {
           font-size: 1.1rem;
           color: var(--text-main);
+          font-weight: 700;
         }
 
         .btn-primary-small {
@@ -323,23 +364,7 @@ export default function PatientBilling({ medical, onUpdate }: PatientBillingProp
         }
 
         .status-badge.paid { background: rgba(16, 185, 129, 0.1); color: #10b981; }
-        .status-badge.pending { background: rgba(245, 158, 11, 0.1); color: #f59e0b; }
-        .status-badge.overdue { background: rgba(239, 68, 68, 0.1); color: #ef4444; }
-
-        .icon-btn {
-          background: transparent;
-          border: none;
-          color: var(--text-secondary);
-          cursor: pointer;
-          padding: 0.4rem;
-          border-radius: 0.4rem;
-          transition: all 0.2s;
-        }
-
-        .icon-btn:hover {
-          background: #f1f5f9;
-          color: var(--primary);
-        }
+        .status-badge.unpaid { background: rgba(245, 158, 11, 0.1); color: #f59e0b; }
 
         .no-data {
           font-size: 0.85rem;
@@ -349,7 +374,6 @@ export default function PatientBilling({ medical, onUpdate }: PatientBillingProp
           font-style: italic;
         }
 
-        /* --- SUB-MODAL STYLING --- */
         .sub-modal-overlay {
           position: fixed;
           top: 0;
