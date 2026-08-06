@@ -20,7 +20,9 @@ export async function POST(req: Request) {
         type: type || 'NOTE',
         content,
         plannedAt: plannedAt ? new Date(plannedAt) : null,
-        status: status || 'COMPLETED'
+        status: status || 'COMPLETED',
+        // Mock audio URL for demonstration of the audio player
+        audioUrl: type === 'CALL' ? 'https://www.soundhelix.com/examples/mp3/SoundHelix-Song-1.mp3' : null
       },
       include: {
         manager: true
